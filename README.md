@@ -55,4 +55,8 @@
 - 修改源文件后运行 `python3 build.py`，会把组件内联进 `birdreport-to-ebird.html` 和 `index.html`（GitHub Pages 用）。
 - 测试用的假数据：`node tests/make_samples.js` 生成到 `tests/samples/`。
 
+## 许可
+
+本项目代码使用 [MIT 许可](LICENSE)，欢迎修改和转发。`vendor/xlsx.full.min.js` 是 SheetJS，使用 Apache-2.0 许可。
+
 非官方工具，与中国观鸟记录中心、eBird 及康奈尔鸟类学实验室无关。
