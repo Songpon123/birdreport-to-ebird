@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>观鸟记录中心转 eBird</title>
+<meta name="description" content="把中国观鸟记录中心（birdreport.cn）导出的 Excel 转换成 eBird 导入文件。全部在浏览器本地处理，不上传任何记录。">
+<style>
+/* Layout: one narrow working column; the steps stack top to bottom in the real order of the workflow. */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --sunken:#ecf1ef; --ink:#15201c; --muted:#58675f; --line:#d4ddd9;
+  --accent:#0d6a5e; --accent-hover:#0a564c; --accent-ink:#ffffff; --accent-soft:#dcefea;
+  --ok:#2a7a3c; --ok-soft:#e1f2e4; --warn:#955600; --warn-soft:#fbeed6; --bad:#ae271e; --bad-soft:#fbe3e0;
+  --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC","Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --radius:10px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1412; --surface:#151d1a; --sunken:#1b2521; --ink:#e2eae6; --muted:#98a9a1; --line:#2a3732;
+    --accent:#4fbea8; --accent-hover:#71d0bd; --accent-ink:#05201a; --accent-soft:#15342d;
+    --ok:#7dca8c; --ok-soft:#14301f; --warn:#e5b15a; --warn-soft:#33260e; --bad:#f08b80; --bad-soft:#3a1613;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1412; --surface:#151d1a; --sunken:#1b2521; --ink:#e2eae6; --muted:#98a9a1; --line:#2a3732;
+  --accent:#4fbea8; --accent-hover:#71d0bd; --accent-ink:#05201a; --accent-soft:#15342d;
+  --ok:#7dca8c; --ok-soft:#14301f; --warn:#e5b15a; --warn-soft:#33260e; --bad:#f08b80; --bad-soft:#3a1613;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 var(--font)}
+a{color:var(--accent)}
+a:hover{color:var(--accent-hover)}
+.wrap{max-width:920px;margin:0 auto;padding-block:32px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+header h1{font-size:clamp(22px,4.2vw,30px);line-height:1.25;margin:0 0 6px;text-wrap:balance;letter-spacing:.01em}
+header h1 .arrow{color:var(--accent);padding:0 .15em}
+header p{margin:0;color:var(--muted);max-width:62ch}
+.notice{border-radius:var(--radius);padding:12px 14px;background:var(--warn-soft);color:var(--warn);font-size:14px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px clamp(14px,3vw,24px);display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
+.step > h2{margin:0;font-size:18px;line-height:1.3;display:flex;gap:10px;align-items:baseline}
+.step > h2 .num{font-family:var(--mono);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.04em}
+.step > h2 .aside{margin-left:auto;font-size:13px;font-weight:400;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+ol.howto{margin:0;padding-left:1.4em;display:grid;gap:4px;max-width:70ch}
+ol.howto b{font-weight:600}
+details.help{border:1px solid var(--line);border-radius:8px;background:var(--sunken)}
+details.help > summary{cursor:pointer;padding:10px 14px;font-weight:600;list-style:none}
+details.help > summary::-webkit-details-marker{display:none}
+details.help > summary::before{content:"▸";display:inline-block;width:1.1em;color:var(--accent);transition:transform .15s}
+details.help[open] > summary::before{transform:rotate(90deg)}
+details.help > div{padding:0 14px 14px}
+.drop{border:2px dashed var(--line);border-radius:var(--radius);background:var(--sunken);padding:26px 16px;text-align:center;display:grid;gap:8px;justify-items:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.drop strong{font-size:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;border-radius:8px;padding:9px 16px;cursor:pointer;line-height:1.3}
+.btn:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn.big{font-size:16px;padding:12px 22px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.files{display:grid;gap:8px}
+.file{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:4px;min-width:0}
+.file .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.file .name{font-weight:600;overflow-wrap:anywhere}
+.file ul{margin:4px 0 0;padding-left:1.2em;font-size:13px;color:var(--bad)}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:999px;padding:1px 9px;white-space:nowrap;background:var(--sunken);color:var(--muted);letter-spacing:.02em}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.bad{background:var(--bad-soft);color:var(--bad)}
+.tag.info{background:var(--accent-soft);color:var(--accent)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.field{display:grid;gap:5px;align-content:start;min-width:0}
+.field > label,.field > .label{font-weight:600;font-size:14px}
+.field .hint{font-size:13px;color:var(--muted)}
+.field input[type=number],.field input[type=text],.field input[type=password],.field select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 10px;width:100%;max-width:100%}
+.choice{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
+.choice input{margin-top:5px;accent-color:var(--accent)}
+.apibox{border-top:1px solid var(--line);padding-top:14px;display:grid;gap:10px}
+.apirow{display:grid;grid-template-columns:minmax(0,1fr) 130px auto;gap:10px;align-items:end}
+@media (max-width:620px){.apirow{grid-template-columns:1fr}}
+.status{font-size:14px;min-height:1.4em}
+.status.bad{color:var(--bad)} .status.ok{color:var(--ok)}
+.stats{display:flex;flex-wrap:wrap;gap:10px 22px}
+.stat{display:grid}
+.stat b{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat span{font-size:12px;color:var(--muted);letter-spacing:.03em}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;max-height:520px;overflow-y:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;white-space:nowrap}
+th{position:sticky;top:0;background:var(--sunken);font-weight:600;z-index:1}
+tr:last-child td{border-bottom:none}
+td.w{white-space:normal;min-width:190px;max-width:340px}
+td select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 6px;max-width:320px}
+.coord{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.warnlist{margin:0;padding:12px 14px 12px 2em;border-radius:8px;background:var(--warn-soft);color:var(--warn);font-size:13px;display:grid;gap:2px}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+footer{color:var(--muted);font-size:13px;display:grid;gap:4px;padding-top:4px}
+code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1px 5px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>观鸟记录中心<span class="arrow">→</span>eBird</h1>
+    <p>把中国观鸟记录中心（birdreport.cn）导出的 Excel 转换成 eBird 可以直接导入的 CSV 文件。文件只在你的浏览器里处理，不会上传到任何服务器。</p>
+  </header>
+
+  <div class="notice" id="wechatNotice" hidden>你正在微信内置浏览器中打开。微信里无法下载文件，请点右上角「…」，选择「在浏览器打开」，最好用电脑浏览器。</div>
+
+  <section class="step" aria-labelledby="h1">
+    <h2 id="h1"><span class="num">1</span>从观鸟记录中心导出 Excel</h2>
+    <ol class="howto">
+      <li>用<b>电脑浏览器</b>打开 birdreport.cn 网页版并登录，点右上角的昵称进入<b>用户中心</b>。</li>
+      <li>左侧点<b>记录管理 → 报告查询</b>，打开<b>定点记</b>。</li>
+      <li><b>不要勾选任何报告</b>，直接点表格右上角的导出图标 →<b>导出到 Excel 文件</b>。不勾选时，网站应该会导出你的<b>全部</b>定点记，不用一页一页导。</li>
+      <li>再打开<b>随手记</b>，用同样的方法导出。</li>
+      <li>（推荐）左侧点<b>记录管理 → 观测点管理</b>，用表格右上角的导出图标导出观测点列表（带经纬度）。一起上传后，定点记也会带上坐标，导入 eBird 时就不用在地图上一个个找位置。观测点多的话，每页导出一次。</li>
+    </ol>
+    <p class="muted small" style="margin:0">如果导出的报告数量比网站上少，可能是之前勾选过的报告还记着。取消所有勾选后再导出；或者把每页改为 200 条，全选，逐页导出。</p>
+  </section>
+
+  <section class="step" aria-labelledby="h2">
+    <h2 id="h2"><span class="num">2</span>上传 Excel 文件</h2>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="选择 Excel 文件">
+      <strong>把 Excel 文件拖到这里，或点击选择</strong>
+      <span class="muted small">支持 .xlsx / .xls / .csv，可以一次选多个；自动识别定点记、随手记和观测点列表</span>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple hidden>
+    <div class="row">
+      <button class="btn ghost" id="sampleBtn" type="button">先用示例数据看看效果</button>
+      <button class="btn ghost" id="clearBtn" type="button" hidden>清空</button>
+    </div>
+    <div class="files" id="files"></div>
+  </section>
+
+  <section class="step" aria-labelledby="h3">
+    <h2 id="h3"><span class="num">3</span>设置</h2>
+    <div class="settings">
+      <div class="field">
+        <label for="observers">观测人数</label>
+        <input type="number" id="observers" min="1" max="99" step="1" value="1">
+        <span class="hint">Excel 里没有人数时使用这个数字。</span>
+      </div>
+      <div class="field">
+        <span class="label">定点记的观测方式</span>
+        <label class="choice"><input type="radio" name="sproto" id="protoStationary" value="Stationary" checked><span><b>定点（Stationary）</b>：一直在同一个点（30 米内）观察。</span></label>
+        <label class="choice"><input type="radio" name="sproto" id="protoHistorical" value="Historical"><span><b>历史记录（Historical）</b>：实际是边走边看，但没有记录距离时，选这个更准确。</span></label>
+      </div>
+      <div class="field">
+        <span class="label">数量</span>
+        <label class="choice"><input type="checkbox" id="onesToX" checked><span>一份清单里<b>所有鸟种都是 1</b>（至少 2 种）时，改成 <code>X</code>（只记出现、不计数）。很多鸟友在记录中心每种都填 1。</span></label>
+        <label class="choice"><input type="checkbox" id="stationaryComplete" checked><span>定点记是<b>完整记录</b>（看到、听到能认出的鸟都记了）。</span></label>
+        <span class="hint">数量为空或 0 的记录一律写成 <code>X</code>，不会编造数量。</span>
+      </div>
+    </div>
+    <div class="apibox">
+      <div>
+        <div class="label" style="font-weight:600">匹配 eBird 热点（可选）</div>
+        <div class="hint small muted">填入你自己的 eBird API Key，就能把地点自动对应到 eBird 热点。Key 可以在 <a href="https://ebird.org/api/keygen" target="_blank" rel="noopener">ebird.org/api/keygen</a> 登录后免费获取。Key 只保存在这台电脑的浏览器里，只用来下载各省的热点列表，不会发送你的记录。不填也能转换。</div>
+      </div>
+      <div class="apirow">
+        <div class="field">
+          <label for="apiKey">eBird API Key</label>
+          <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="例如 abcd1234efgh">
+        </div>
+        <div class="field">
+          <label for="radius">随手记匹配范围</label>
+          <select id="radius">
+            <option value="0.2">200 米内</option>
+            <option value="0.5" selected>500 米内</option>
+            <option value="1">1 公里内</option>
+            <option value="2">2 公里内</option>
+          </select>
+        </div>
+        <button class="btn" id="matchBtn" type="button">匹配热点</button>
+      </div>
+      <div class="status" id="apiStatus" role="status"></div>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="h4">
+    <h2 id="h4"><span class="num">4</span>检查地点<span class="aside" id="locAside"></span></h2>
+    <div id="locSummary" class="row"></div>
+    <div id="locTable"><p class="empty">上传文件后，这里会列出所有地点。</p></div>
+  </section>
+
+  <section class="step" aria-labelledby="h5">
+    <h2 id="h5"><span class="num">5</span>下载并导入 eBird</h2>
+    <div id="outStats" class="stats"></div>
+    <div id="outWarn"></div>
+    <div class="row">
+      <button class="btn big" id="downloadBtn" type="button" disabled>下载 eBird 导入文件（CSV）</button>
+      <span class="muted small" id="downloadNote"></span>
+    </div>
+    <details class="help" id="previewBox">
+      <summary>预览 CSV 前 30 行</summary>
+      <div id="preview"></div>
+    </details>
+    <details class="help" open>
+      <summary>怎么导入 eBird</summary>
+      <div>
+        <ol class="howto">
+          <li>先在 eBird 的 <b>Preferences（偏好设置）</b>里，把鸟种名称语言设为<b>中文（Sìm.）</b>，这样大部分鸟名能自动对上。</li>
+          <li>打开 <a href="https://ebird.org/import" target="_blank" rel="noopener">ebird.org/import</a>，格式选 <b>eBird Record Format (Extended)</b>（eBird 记录格式（扩展）），上传刚下载的 CSV。</li>
+          <li>eBird 会让你<b>确认地点</b>：有坐标的地点会自动定位；没有坐标的，在地图上点一下位置。</li>
+          <li>再<b>确认对不上的鸟种</b>（两边分类系统不同，少数鸟名需要手动选）。</li>
+          <li>建议第一次只导入少量清单试试，确认没问题再导全部。</li>
+        </ol>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <span>非官方工具，与中国观鸟记录中心、eBird 及康奈尔鸟类学实验室无关。</span>
+    <span>记录中心的百度坐标（BD-09）和火星坐标（GCJ-02）都会自动转换成 eBird 使用的 GPS 坐标（WGS-84）。</span>
+  </footer>
+</main>
+
+<!--SHEETJS-->
+<script>
+'use strict';
+/* ---------- small helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch(e){} },
+};
+const pad = n => String(n).padStart(2, '0');
+const clean = v => String(v ?? '').replace(/[\r\n\t]+/g, ' ').trim();
+
+/* ---------- app state ---------- */
+const App = {
+  sources: [],             // {id, name, kind, records, errors, dupes, sample}
+  locations: new Map(),    // key -> location
+  hotspots: new Map(),     // region code -> [{locId, locName, lat, lng, cc, s1}]
+  overrides: new Map(),    // location key -> 'own' | locId
+  output: null,
+  nextId: 1,
+};
+function opts(){
+  return {
+    observers: Math.max(1, parseInt($('#observers').value, 10) || 1),
+    stationaryProtocol: $('#protoHistorical').checked ? 'Historical' : 'Stationary',
+    onesToX: $('#onesToX').checked,
+    stationaryComplete: $('#stationaryComplete').checked,
+    radiusKm: parseFloat($('#radius').value) || 0.5,
+  };
+}
+
+/* ---------- reading birdreport.cn Excel ---------- */
+const normH = h => String(h ?? '').replace(/\s+/g, '').replace(/（/g, '(').replace(/）/g, ')');
+const COLS = {
+  cn: ['中文名', '鸟种名称', '中文名称', '鸟种'],
+  sci: ['拉丁名', '学名'],
+  count: ['鸟种数量', '数量'],
+  report: ['报告编号', '记录编号'],
+  province: ['省', '省份'],
+  city: ['州/市', '市', '城市'],
+  district: ['区/县', '区县', '县/区'],
+  note: ['描述', '备注', '鸟种备注'],
+  start: ['观测开始时间', '开始时间'],
+  end: ['观测结束时间', '结束时间'],
+  time: ['记录时间', '观测时间'],
+  lat: ['纬度(火星)'],
+  lng: ['经度(火星)'],
+  latBd: ['纬度(百度)'],
+  lngBd: ['经度(百度)'],
+  observers: ['观测人数', '参与人数', '人数'],
+  place: ['观测点名称', '观测点', '观测地点', '地点名称', '地点', '点位'],
+};
+// 观测点管理 export (coordinates are Baidu BD-09, as shown on the site's Baidu map)
+const PCOLS = {
+  name: ['观测点名称', '观测点'],
+  province: ['省份', '省'],
+  city: ['州/市', '市'],
+  district: ['县/区', '区/县'],
+  lat: ['纬度', '纬度(百度)'],
+  lng: ['经度', '经度(百度)'],
+};
+function findCol(headers, names){
+  for (const n of names){ const i = headers.indexOf(normH(n)); if (i >= 0) return i; }
+  return -1;
+}
+function parseDT(v){
+  if (v === '' || v == null) return null;
+  if (typeof v === 'number' && isFinite(v)){
+    const p = XLSX.SSF.parse_date_code(v);
+    if (!p || !p.y) return null;
+    const hasTime = Math.abs(v % 1) > 1e-9;
+    return { y: p.y, m: p.m, d: p.d, H: hasTime ? p.H : null, M: hasTime ? p.M : null };
+  }
+  const s = String(v).trim();
+  const m = s.match(/^(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})日?(?:[\sT]*(\d{1,2})\s*[:：]\s*(\d{1,2})(?:[:：](\d{1,2}))?)?/);
+  if (!m) return null;
+  const t = { y: +m[1], m: +m[2], d: +m[3], H: m[4] != null ? +m[4] : null, M: m[5] != null ? +m[5] : null };
+  if (t.m < 1 || t.m > 12 || t.d < 1 || t.d > 31) return null;
+  if (t.H != null && (t.H > 23 || t.M > 59)) { t.H = null; t.M = null; }
+  return t;
+}
+function parseCount(v){
+  if (v === '' || v == null) return { n: null, raw: '' };
+  if (typeof v === 'number' && isFinite(v)) return { n: Math.max(0, Math.round(v)), raw: String(v) };
+  const s = String(v).trim();
+  const m = s.match(/\d+/);
+  return { n: m ? parseInt(m[0], 10) : null, raw: s };
+}
+const toNum = v => {
+  if (typeof v === 'number') return v;
+  const s = String(v ?? '').replace(/[^\d.\-]/g, '');
+  return s ? Number(s) : NaN;
+};
+const validLatLng = (lat, lng) => isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0 && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+const posInt = v => { const n = parseInt(v, 10); return n > 0 && n < 1000 ? n : null; };
+
+function parsePoints(aoa, hi, headers, src){
+  src.kind = 'points'; src.points = [];
+  const ix = {};
+  for (const k in PCOLS) ix[k] = findCol(headers, PCOLS[k]);
+  if (ix.name < 0 || ix.lat < 0 || ix.lng < 0){ src.errors.push('观测点文件需要有「观测点名称」「经度」「纬度」三列。'); return src; }
+  for (let r = hi + 1; r < aoa.length; r++){
+    const row = aoa[r] || [];
+    const g = k => ix[k] >= 0 ? row[ix[k]] : '';
+    const name = clean(g('name'));
+    if (!name) continue;
+    let lat = toNum(g('lat')), lng = toNum(g('lng'));
+    if (lat > lng){ const t = lat; lat = lng; lng = t; } // columns swapped: in China longitude is always the larger number
+    if (!validLatLng(lat, lng)){ src.errors.push(`观测点「${name}」没有有效坐标，已跳过。`); continue; }
+    src.points.push({ name, province: clean(g('province')), city: clean(g('city')), district: clean(g('district')), bd: { lat, lng } });
+  }
+  if (!src.points.length && !src.errors.length) src.errors.push('文件里没有找到观测点。');
+  return src;
+}
+
+function parseSheet(aoa, name){
+  const src = { id: App.nextId++, name, kind: null, records: [], errors: [], dupes: 0 };
+  const hi = aoa.findIndex((r, i) => i < 15 && Array.isArray(r) && r.some(c => ['中文名', '拉丁名', '观测点名称'].includes(normH(c))));
+  if (hi < 0){ src.errors.push('找不到表头：需要有「中文名」或「拉丁名」这一列。请确认是从观鸟记录中心导出的文件。'); return src; }
+  const headers = aoa[hi].map(normH);
+  if (findCol(headers, COLS.cn) < 0 && findCol(headers, COLS.sci) < 0) return parsePoints(aoa, hi, headers, src);
+  const ix = {};
+  for (const k in COLS) ix[k] = findCol(headers, COLS[k]);
+  if (ix.place < 0){ const iu = headers.indexOf('IUCN受胁级别'); if (iu > 0) ix.place = iu - 1; }
+  if (ix.start >= 0) src.kind = 'stationary';
+  else if (ix.time >= 0) src.kind = 'incidental';
+  else { src.errors.push('无法判断是定点记还是随手记：缺少「观测开始时间」或「记录时间」列。'); return src; }
+  for (let r = hi + 1; r < aoa.length; r++){
+    const row = aoa[r] || [];
+    const g = k => ix[k] >= 0 ? row[ix[k]] : '';
+    const cn = clean(g('cn')), sci = clean(g('sci'));
+    if (!cn && !sci) continue;
+    const rawStart = src.kind === 'stationary' ? g('start') : g('time');
+    const start = parseDT(rawStart);
+    if (!start){ src.errors.push(`第 ${r + 1} 行（${cn || sci}）：日期无法识别「${clean(rawStart) || '空'}」，已跳过。`); continue; }
+    // prefer 火星 (GCJ-02) columns; otherwise convert the 百度 (BD-09) columns
+    let gcj = null, orig = null;
+    const lat = toNum(g('lat')), lng = toNum(g('lng'));
+    if (validLatLng(lat, lng)){ gcj = { lat, lng }; orig = { label: '火星', lat, lng }; }
+    else {
+      const bl = toNum(g('latBd')), bg = toNum(g('lngBd'));
+      if (validLatLng(bl, bg)){ gcj = bdToGcj(bl, bg); orig = { label: '百度', lat: bl, lng: bg }; }
+    }
+    src.records.push({
+      row: r + 1, kind: src.kind, src: src.id,
+      report: clean(g('report')), cn, sci, count: parseCount(g('count')), note: clean(g('note')),
+      province: clean(g('province')), city: clean(g('city')), district: clean(g('district')),
+      place: src.kind === 'stationary' ? clean(g('place')) : '',   // 随手记 has no place name column
+      start, end: src.kind === 'stationary' ? parseDT(g('end')) : null,
+      gcj, orig,
+      observers: posInt(g('observers')),
+    });
+  }
+  if (!src.records.length && !src.errors.length) src.errors.push('文件里没有找到鸟种记录。');
+  return src;
+}
+
+function addSource(src){
+  // replace a file uploaded again under the same name
+  App.sources = App.sources.filter(s => s.name !== src.name);
+  // ignore records already present in another file (overlapping exports)
+  const seen = new Set();
+  for (const s of App.sources) for (const r of s.records) seen.add(sig(r));
+  const before = src.records.length;
+  src.records = src.records.filter(r => !seen.has(sig(r)));
+  src.dupes = before - src.records.length;
+  App.sources.push(src);
+}
+// identity of one record across files; the report number is unique, coordinates only help when it is missing
+// (rounded, because the same point can arrive as 火星 or as converted 百度 coordinates)
+const sig = r => [r.kind, r.report, r.cn, r.sci, r.count.raw, JSON.stringify(r.start), r.place,
+  r.report || !r.gcj ? '' : r.gcj.lat.toFixed(4) + ',' + r.gcj.lng.toFixed(4)].join('|');
+
+async function addFiles(fileList){
+  const files = [...fileList];
+  for (const f of files){
+    try {
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+      addSource(parseSheet(aoa, f.name));
+    } catch (e){
+      addSource({ id: App.nextId++, name: f.name, kind: null, records: [], errors: ['无法读取这个文件：' + (e && e.message ? e.message : e)], dupes: 0 });
+    }
+  }
+  refresh();
+}
+
+/* ---------- regions ---------- */
+const PROVINCES = [['北京','11'],['天津','12'],['河北','13'],['山西','14'],['内蒙古','15'],['辽宁','21'],['吉林','22'],['黑龙江','23'],['上海','31'],['江苏','32'],['浙江','33'],['安徽','34'],['福建','35'],['江西','36'],['山东','37'],['河南','41'],['湖北','42'],['湖南','43'],['广东','44'],['广西','45'],['海南','46'],['重庆','50'],['四川','51'],['贵州','52'],['云南','53'],['西藏','54'],['陕西','61'],['甘肃','62'],['青海','63'],['宁夏','64'],['新疆','65']];
+function regionOf(province){
+  const p = String(province || '').trim();
+  if (/^(香港|香港特别行政区)/.test(p)) return { country: 'HK', state: '', region: 'HK' };
+  if (/^(澳门|澳門)/.test(p)) return { country: 'MO', state: '', region: 'MO' };
+  if (/^(台湾|臺灣|台灣)/.test(p)) return { country: 'TW', state: '', region: 'TW' };
+  for (const [k, c] of PROVINCES) if (p.startsWith(k)) return { country: 'CN', state: c, region: 'CN-' + c };
+  return { country: 'CN', state: '', region: '' };
+}
+
+/* ---------- GCJ-02 (火星坐标) -> WGS-84 ---------- */
+const GA = 6378245.0, GEE = 0.00669342162296594323;
+function gTLat(x, y){
+  let r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+  r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+  return r;
+}
+function gTLng(x, y){
+  let r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+  r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+  return r;
+}
+function wgsToGcj(lat, lng){
+  let dLat = gTLat(lng - 105, lat - 35), dLng = gTLng(lng - 105, lat - 35);
+  const rad = lat / 180 * Math.PI;
+  let magic = Math.sin(rad); magic = 1 - GEE * magic * magic;
+  const sq = Math.sqrt(magic);
+  dLat = (dLat * 180) / ((GA * (1 - GEE)) / (magic * sq) * Math.PI);
+  dLng = (dLng * 180) / (GA / sq * Math.cos(rad) * Math.PI);
+  return [lat + dLat, lng + dLng];
+}
+function gcjToWgs(lat, lng){
+  let wl = lat, wg = lng;
+  for (let i = 0; i < 6; i++){ const [a, b] = wgsToGcj(wl, wg); wl += lat - a; wg += lng - b; }
+  return { lat: wl, lng: wg };
+}
+/* BD-09 (百度坐标) -> GCJ-02 */
+const X_PI = Math.PI * 3000 / 180;
+function bdToGcj(lat, lng){
+  const x = lng - 0.0065, y = lat - 0.006;
+  const z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * X_PI);
+  const theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * X_PI);
+  return { lat: z * Math.sin(theta), lng: z * Math.cos(theta) };
+}
+const outsideMainlandGrid = (lat, lng) => lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271;
+function toWgs(gcj, country){
+  if (country === 'TW' || outsideMainlandGrid(gcj.lat, gcj.lng)) return { lat: gcj.lat, lng: gcj.lng };
+  return gcjToWgs(gcj.lat, gcj.lng);
+}
+function km(a, b){
+  const R = 6371, rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/* ---------- hotspot name matching ---------- */
+const cjk = s => String(s || '').replace(/[^㐀-鿿]/g, '');
+function dice(a, b){
+  if (a.length < 2 || b.length < 2) return a === b ? 1 : 0;
+  const m = new Map(); let inter = 0;
+  for (let i = 0; i < a.length - 1; i++){ const g = a.slice(i, i + 2); m.set(g, (m.get(g) || 0) + 1); }
+  for (let i = 0; i < b.length - 1; i++){ const g = b.slice(i, i + 2), c = m.get(g); if (c){ inter++; m.set(g, c - 1); } }
+  return 2 * inter / (a.length - 1 + b.length - 1);
+}
+function nameScore(place, hotspotName){
+  const a = cjk(place), b = cjk(hotspotName);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (a.length >= 3 && b.includes(a)) return 0.95 - Math.min(b.length - a.length, 20) * 0.005;
+  if (b.length >= 3 && a.includes(b)) return 0.85 - Math.min(a.length - b.length, 20) * 0.005;
+  return dice(a, b) * 0.8;
+}
+
+/* ---------- locations ---------- */
+function locKeyOf(r){
+  const c = r.gcj ? r.gcj.lat.toFixed(5) + ',' + r.gcj.lng.toFixed(5) : '';
+  if (r.kind === 'stationary') return 'S|' + r.province + '|' + r.place + '|' + c;
+  return c ? 'I|' + c : 'I|' + r.province + r.city + r.district;
+}
+const provKey = p => { const s = String(p || '').trim(); for (const [k] of PROVINCES) if (s.startsWith(k)) return k; return s.slice(0, 2); };
+function pointIndex(){
+  const byProv = new Map(), byName = new Map();
+  for (const s of App.sources) for (const p of (s.points || [])){
+    byProv.set(provKey(p.province) + '|' + p.name, p);
+    if (!byName.has(p.name)) byName.set(p.name, []);
+    byName.get(p.name).push(p);
+  }
+  return {
+    size: byName.size,
+    find(province, name){
+      const hit = byProv.get(provKey(province) + '|' + name);
+      if (hit) return hit;
+      const same = byName.get(name) || [];
+      return same.length === 1 && !same[0].province ? same[0] : null;
+    },
+  };
+}
+function buildLocations(){
+  const map = new Map(), pts = pointIndex();
+  App.pointCount = pts.size;
+  for (const s of App.sources) for (const r of s.records){
+    const key = locKeyOf(r); r.locKey = key;
+    let L = map.get(key);
+    if (!L){
+      const reg = regionOf(r.province);
+      let gcj = r.gcj, orig = r.orig, fromPoint = false;
+      if (!gcj && r.kind === 'stationary' && r.place){
+        const p = pts.find(r.province, r.place);
+        if (p){ gcj = bdToGcj(p.bd.lat, p.bd.lng); orig = { label: '百度', lat: p.bd.lat, lng: p.bd.lng }; fromPoint = true; }
+      }
+      L = { key, kind: r.kind, place: r.place, province: r.province, city: r.city, district: r.district, reg,
+            gcj, orig, fromPoint, wgs: gcj ? toWgs(gcj, reg.country) : null, n: 0 };
+      map.set(key, L);
+    }
+    L.n++;
+  }
+  const o = opts();
+  for (const L of map.values()) resolveLocation(L, o);
+  App.locations = map;
+}
+function resolveLocation(L, o){
+  const hs = App.hotspots.get(L.reg.region) || [];
+  const cands = [];
+  if (hs.length){
+    for (const h of hs){
+      const score = (L.kind === 'stationary' && L.place) ? nameScore(L.place, h.locName) : 0;
+      const dist = L.wgs ? km(L.wgs, h) : null;
+      if (score >= 0.5 || (dist != null && dist <= Math.max(o.radiusKm, 1))) cands.push({ h, score, dist });
+    }
+  }
+  cands.sort((a, b) => (b.score - a.score) || ((a.dist ?? 1e9) - (b.dist ?? 1e9)));
+  L.cands = cands.slice(0, 10);
+  let auto = null, why = '';
+  const byName = cands.filter(c => c.score >= 0.75 && (c.dist == null || c.dist <= 10));
+  if (byName.length){ auto = byName[0].h; why = 'name'; L.ambiguous = byName.length > 1 && byName[0].score - byName[1].score < 0.02; }
+  else {
+    L.ambiguous = false;
+    const near = cands.filter(c => c.dist != null && c.dist <= o.radiusKm).sort((a, b) => a.dist - b.dist);
+    if (near.length){ auto = near[0].h; why = 'near'; }
+  }
+  L.auto = auto; L.why = why;
+}
+function chosen(L){
+  const ov = App.overrides.get(L.key);
+  if (ov === 'own') return null;
+  if (ov){ const h = (App.hotspots.get(L.reg.region) || []).find(x => x.locId === ov); if (h) return h; }
+  return L.auto;
+}
+function ownName(L){
+  if (L.kind === 'stationary' && L.place) return L.place;
+  const parts = [];
+  for (const p of [L.province, L.city, L.district]) if (p && !parts.includes(p)) parts.push(p);
+  const area = parts.slice(-2).join('') || '随手记';
+  return L.wgs ? `${area} ${L.wgs.lat.toFixed(4)},${L.wgs.lng.toFixed(4)}` : area;
+}
+function locOut(L){
+  const h = chosen(L);
+  if (h){
+    const st = h.s1 && h.s1.includes('-') ? h.s1.split('-')[1] : L.reg.state;
+    return { name: h.locName, lat: h.lat, lng: h.lng, hotspot: h, id: h.locId, country: h.cc || L.reg.country, state: h.cc && h.cc !== 'CN' ? '' : st };
+  }
+  return { name: ownName(L), lat: L.wgs ? L.wgs.lat : '', lng: L.wgs ? L.wgs.lng : '', hotspot: null, id: L.key, country: L.reg.country, state: L.reg.state };
+}
+function locState(L){
+  const h = chosen(L);
+  if (h) return App.overrides.has(L.key) ? 'manual' : 'hotspot';
+  return L.wgs ? 'coords' : 'pin';
+}
+
+/* ---------- build eBird rows ---------- */
+const SPECIAL_NAMES = { '鹗': '鹗 (鱼鹰)', '隼': '隼形目未知' };
+const tMin = t => Date.UTC(t.y, t.m - 1, t.d, t.H || 0, t.M || 0) / 60000;
+const dateKey = t => `${t.y}-${pad(t.m)}-${pad(t.d)}`;
+const timeStr = t => t.H == null ? '' : `${pad(t.H)}:${pad(t.M || 0)}`;
+
+function buildOutput(){
+  const o = opts();
+  const lists = new Map();
+  for (const s of App.sources) for (const r of s.records){
+    const L = App.locations.get(r.locKey), lo = locOut(L);
+    const key = r.kind === 'stationary'
+      ? 'S|' + (r.report || r.place + '|' + dateKey(r.start) + '|' + timeStr(r.start))
+      : 'I|' + dateKey(r.start) + '|' + lo.id;
+    let C = lists.get(key);
+    if (!C){ C = { key, kind: r.kind, lo, start: r.start, end: r.end, reports: new Set(), species: new Map(), observers: r.observers, times: new Set() }; lists.set(key, C); }
+    if (r.report) C.reports.add(r.report);
+    if (r.kind === 'incidental'){ if (tMin(r.start) < tMin(C.start)) C.start = r.start; C.times.add(timeStr(r.start)); }
+    const sk = r.sci || r.cn;
+    let S = C.species.get(sk);
+    if (!S){ S = { cn: r.cn, sci: r.sci, counts: [], notes: [], times: [] }; C.species.set(sk, S); }
+    S.counts.push(r.count);
+    if (r.note && !S.notes.includes(r.note)) S.notes.push(r.note);
+    if (r.kind === 'incidental') S.times.push(timeStr(r.start));
+  }
+
+  const rows = [], warnings = [];
+  let nX = 0, nSwitched = 0;
+  const sorted = [...lists.values()].sort((a, b) => tMin(a.start) - tMin(b.start));
+  for (const C of sorted){
+    let protocol, duration = '', complete, note = '';
+    if (C.kind === 'stationary'){
+      protocol = o.stationaryProtocol;
+      complete = o.stationaryComplete ? 'Y' : 'N';
+      if (C.start.H == null){
+        if (protocol === 'Stationary'){ protocol = 'Historical'; nSwitched++; }
+        note = '原记录没有开始时间。';
+      } else if (C.end && C.end.H != null){
+        const d = tMin(C.end) - tMin(C.start);
+        if (d >= 1 && d <= 1440) duration = d;
+        else if (d >= 0 && d < 1) duration = 1;
+        else {
+          if (protocol === 'Stationary'){ protocol = 'Historical'; nSwitched++; }
+          note = `原记录时间为 ${dateKey(C.start)} ${timeStr(C.start)} 至 ${dateKey(C.end)} ${timeStr(C.end)}。`;
+          warnings.push(`清单 ${[...C.reports].join(', ') || C.lo.name}（${dateKey(C.start)}）：结束时间早于开始时间或超过 24 小时，已改为 Historical，不填时长。`);
+        }
+      } else if (protocol === 'Stationary'){ protocol = 'Historical'; nSwitched++; note = '原记录没有结束时间。'; }
+    } else {
+      protocol = 'Incidental'; complete = 'N';
+    }
+
+    const items = [];
+    for (const S of C.species.values()){
+      let val, zero = false;
+      if (S.counts.some(c => c.n == null || c.n === 0)){ val = 'X'; zero = S.counts.some(c => c.n === 0); }
+      else val = S.counts.reduce((a, c) => a + c.n, 0);
+      items.push({ S, val, zero });
+    }
+    if (o.onesToX && items.length >= 2 && items.every(it => it.val === 1)) for (const it of items) it.val = 'X';
+
+    const multiTime = C.kind === 'incidental' && C.times.size > 1;
+    const ids = [...C.reports];
+    let comment = 'Imported from birdreport.cn (中国观鸟记录中心)' + (ids.length ? '. Report ID: ' + (ids.length > 12 ? ids.slice(0, 12).join(', ') + ' …' : ids.join(', ')) : '') + '.';
+    if (note) comment += ' ' + note;
+
+    for (const it of items){
+      const S = it.S;
+      let name = S.cn || S.sci;
+      if (SPECIAL_NAMES[name]) name = SPECIAL_NAMES[name];
+      if (name.length < 2) name += ' ';
+      const parts = S.sci.split(/\s+/).filter(Boolean);
+      const sc = [...S.notes];
+      if (it.zero) sc.push('原记录数量为 0');
+      if (multiTime && S.times.length) sc.push('记录时间 ' + [...new Set(S.times)].join('、'));
+      if (it.val === 'X') nX++;
+      rows.push([
+        name, parts[0] || '', parts.slice(1).join(' '), it.val, sc.join('；'),
+        C.lo.name, C.lo.lat === '' ? '' : (+C.lo.lat).toFixed(6), C.lo.lng === '' ? '' : (+C.lo.lng).toFixed(6),
+        `${pad(C.start.m)}/${pad(C.start.d)}/${C.start.y}`, timeStr(C.start),
+        C.lo.state, C.lo.country, protocol, C.observers || o.observers, duration, complete, '', '', comment,
+      ]);
+    }
+  }
+  if (nSwitched) warnings.unshift(`${nSwitched} 份定点记缺少开始/结束时间或时间不合理，已改用 Historical（eBird 的定点方式必须有时长）。`);
+  const csvField = v => { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const csv = '﻿' + rows.map(r => r.map(csvField).join(',')).join('\r\n') + (rows.length ? '\r\n' : '');
+  const dates = sorted.map(C => dateKey(C.start));
+  App.output = { rows, csv, lists: sorted.length, species: new Set(rows.map(r => r[2] ? r[1] + ' ' + r[2] : r[0])).size, nX, warnings,
+                 firstDate: dates[0], lastDate: dates[dates.length - 1] };
+  return App.output;
+}
+
+/* ---------- rendering ---------- */
+const KIND = { stationary: '定点记', incidental: '随手记', points: '观测点列表' };
+function renderSources(){
+  const box = $('#files');
+  $('#clearBtn').hidden = !App.sources.length;
+  box.innerHTML = App.sources.map(s => {
+    const lists = new Set(s.records.map(r => r.kind === 'stationary' ? r.report || r.place + dateKey(r.start) : dateKey(r.start) + r.locKey)).size;
+    const errs = s.errors.slice(0, 6).map(e => `<li>${esc(e)}</li>`).join('') + (s.errors.length > 6 ? `<li>还有 ${s.errors.length - 6} 条问题……</li>` : '');
+    return `<div class="file"><div class="top">
+      <span class="name">${esc(s.name)}</span>
+      ${s.sample ? '<span class="tag warn">示例数据</span>' : ''}
+      ${s.kind ? `<span class="tag info">${KIND[s.kind]}</span>` : '<span class="tag bad">无法识别</span>'}
+      ${s.records.length ? `<span class="muted small">${s.records.length} 条鸟种记录 · 约 ${lists} 份清单</span>` : ''}
+      ${s.points && s.points.length ? `<span class="muted small">${s.points.length} 个观测点（百度坐标）</span>` : ''}
+      ${s.dupes ? `<span class="tag warn">已忽略 ${s.dupes} 条重复记录</span>` : ''}
+    </div>${errs ? `<ul>${errs}</ul>` : ''}</div>`;
+  }).join('');
+}
+const STATE_TAG = {
+  hotspot: '<span class="tag ok">eBird 热点</span>',
+  manual: '<span class="tag ok">热点（手动选）</span>',
+  coords: '<span class="tag info">自定义地点（有坐标）</span>',
+  pin: '<span class="tag warn">导入时需在地图上点选</span>',
+};
+function renderLocations(){
+  const locs = [...App.locations.values()];
+  const box = $('#locTable'), sum = $('#locSummary');
+  if (!locs.length){ box.innerHTML = '<p class="empty">上传文件后，这里会列出所有地点。</p>'; sum.innerHTML = ''; $('#locAside').textContent = ''; return; }
+  const count = { hotspot: 0, manual: 0, coords: 0, pin: 0 };
+  for (const L of locs) count[locState(L)]++;
+  $('#locAside').textContent = `共 ${locs.length} 个地点`;
+  const hasHs = App.hotspots.size > 0;
+  sum.innerHTML = [
+    count.hotspot + count.manual ? `<span class="tag ok">热点 ${count.hotspot + count.manual}</span>` : '',
+    count.coords ? `<span class="tag info">有坐标 ${count.coords}</span>` : '',
+    count.pin ? `<span class="tag warn">需在 eBird 地图上点选 ${count.pin}</span>` : '',
+    count.pin && !App.pointCount ? '<span class="muted small">上传「观测点管理」导出的文件，可以给定点记补上坐标。</span>' : '',
+    !hasHs ? '<span class="muted small">填入 eBird API Key 并点「匹配热点」，可以把地点对应到 eBird 热点。</span>' : '',
+  ].join('');
+  locs.sort((a, b) => (a.kind < b.kind ? 1 : a.kind > b.kind ? -1 : 0) ||a.province.localeCompare(b.province, 'zh') || b.n - a.n);
+  const rows = locs.map((L, i) => {
+    const st = locState(L), lo = locOut(L);
+    const orig = L.kind === 'stationary'
+      ? `${esc(L.place || '（无地点名）')}<div class="muted small">${esc([L.province, L.city, L.district].filter((p, j, a) => p && a.indexOf(p) === j).join(' '))}</div>`
+      : `${esc([L.province, L.city, L.district].filter((p, j, a) => p && a.indexOf(p) === j).join(' ') || '随手记')}`;
+    const coord = L.wgs
+      ? `<div class="coord">${L.orig.label} ${L.orig.lat.toFixed(5)}, ${L.orig.lng.toFixed(5)}<br>GPS ${L.wgs.lat.toFixed(5)}, ${L.wgs.lng.toFixed(5)}</div>${L.fromPoint ? '<div class="muted small">来自观测点列表</div>' : ''}`
+      : '<span class="muted small">无坐标</span>';
+    let pick = esc(lo.name);
+    if (hasHs && (L.cands.length || chosen(L))){
+      const cur = chosen(L);
+      const choices = [`<option value="own"${!cur ? ' selected' : ''}>不用热点：${esc(ownName(L))}</option>`];
+      const listed = new Set();
+      for (const c of L.cands){
+        listed.add(c.h.locId);
+        const d = c.dist != null ? `${c.dist < 1 ? Math.round(c.dist * 1000) + ' 米' : c.dist.toFixed(1) + ' 公里'}` : '';
+        choices.push(`<option value="${esc(c.h.locId)}"${cur && cur.locId === c.h.locId ? ' selected' : ''}>${esc(c.h.locName)}${d ? '（' + d + '）' : ''}</option>`);
+      }
+      if (cur && !listed.has(cur.locId)) choices.push(`<option value="${esc(cur.locId)}" selected>${esc(cur.locName)}</option>`);
+      pick = `<select data-key="${esc(L.key)}" aria-label="选择热点">${choices.join('')}</select>${L.ambiguous && !App.overrides.has(L.key) ? '<div class="small" style="color:var(--warn)">有几个名字相近的热点，请确认</div>' : ''}`;
+    }
+    return `<tr><td class="w">${orig}</td><td>${KIND[L.kind]}</td><td>${L.n}</td><td>${coord}</td><td>${STATE_TAG[st]}</td><td class="w">${pick}</td></tr>`;
+  });
+  box.innerHTML = `<div class="table-wrap"><table><thead><tr><th>原地点</th><th>类型</th><th>记录数</th><th>坐标</th><th>状态</th><th>导入 eBird 时用的地点</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+}
+function renderOutput(){
+  const out = buildOutput();
+  const btn = $('#downloadBtn');
+  btn.disabled = !out.rows.length;
+  $('#downloadNote').textContent = out.rows.length ? `共 ${out.rows.length} 行` : '还没有可以转换的记录';
+  $('#outStats').innerHTML = out.rows.length ? [
+    ['份清单', out.lists], ['条记录', out.rows.length], ['种/类', out.species], ['条数量写成 X', out.nX],
+    ['日期范围', out.firstDate === out.lastDate ? out.firstDate : `${out.firstDate} 至 ${out.lastDate}`],
+  ].map(([k, v]) => `<div class="stat"><b>${esc(v)}</b><span>${k}</span></div>`).join('') : '';
+  $('#outWarn').innerHTML = out.warnings.length
+    ? `<ul class="warnlist">${out.warnings.slice(0, 12).map(w => `<li>${esc(w)}</li>`).join('')}${out.warnings.length > 12 ? `<li>还有 ${out.warnings.length - 12} 条……</li>` : ''}</ul>` : '';
+  const head = ['鸟名', '属', '种', '数量', '鸟种备注', '地点', '纬度', '经度', '日期', '开始时间', '省', '国家', '方式', '人数', '时长(分钟)', '完整记录', '距离', '面积', '清单备注'];
+  $('#preview').innerHTML = out.rows.length
+    ? `<div class="table-wrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${out.rows.slice(0, 30).map(r => `<tr>${r.map((c, i) => `<td${i === 4 || i === 18 ? ' class="w"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="muted small">CSV 文件没有表头，这里的表头只是方便查看。</p>`
+    : '<p class="empty">还没有数据。</p>';
+}
+function refresh(){
+  buildLocations();
+  renderSources();
+  renderLocations();
+  renderOutput();
+}
+
+/* ---------- eBird hotspots ---------- */
+async function matchHotspots(){
+  const status = $('#apiStatus');
+  const key = $('#apiKey').value.trim();
+  status.className = 'status';
+  if (!key){ status.className = 'status bad'; status.textContent = '请先填入 eBird API Key。'; return; }
+  if (!App.locations.size){ status.className = 'status bad'; status.textContent = '请先上传 Excel 文件。'; return; }
+  store.set('ebirdApiKey', key);
+  const regions = [...new Set([...App.locations.values()].map(L => L.reg.region).filter(Boolean))];
+  const btn = $('#matchBtn'); btn.disabled = true;
+  try {
+    let i = 0;
+    for (const r of regions){
+      i++;
+      if (App.hotspots.has(r)) continue;
+      status.textContent = `正在下载热点列表（${i}/${regions.length}）：${r}……`;
+      const res = await fetch(`https://api.ebird.org/v2/ref/hotspot/${encodeURIComponent(r)}?fmt=json`, { headers: { 'X-eBirdApiToken': key } });
+      if (res.status === 401 || res.status === 403) throw new Error('auth');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const arr = await res.json();
+      App.hotspots.set(r, arr.map(h => ({ locId: h.locId, locName: h.locName, lat: +h.lat, lng: +h.lng, cc: h.countryCode, s1: h.subnational1Code })));
+    }
+    refresh();
+    const n = [...App.locations.values()].filter(L => chosen(L)).length;
+    status.className = 'status ok';
+    status.textContent = `完成：${App.locations.size} 个地点中有 ${n} 个对应到了 eBird 热点。可以在下面逐个修改。`;
+  } catch (e){
+    status.className = 'status bad';
+    status.textContent = e.message === 'auth'
+      ? 'eBird 拒绝了这个 API Key，请检查是否复制完整。'
+      : '连不上 eBird（' + (e.message || e) + '）。可能是网络问题，稍后再试；不匹配热点也可以直接下载。';
+  } finally { btn.disabled = false; }
+}
+
+/* ---------- download ---------- */
+function download(){
+  if (!App.output || !App.output.rows.length) return;
+  const blob = new Blob([App.output.csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = `ebird-import-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.csv`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+
+/* ---------- example data ---------- */
+function loadSample(){
+  // same columns as the site's own exports
+  const SH = ['报告编号', '观测开始时间', '观测结束时间', '中文名', '拉丁名', '省', '州/市', '区/县', '观测点名称', 'IUCN受胁级别', '国家保护等级', 'CITES保护等级', '鸟种数量'];
+  const s = (id, a, b, cn, sci, dist, pt, n) => [id, a, b, cn, sci, '北京市', '北京市', dist, pt, 'LC', '', '', n];
+  const S = [SH,
+    s('示例-0001', '2025-04-12 06:30:00', '2025-04-12 09:10:00', '白头鹎', 'Pycnonotus sinensis', '朝阳区', '奥林匹克森林公园', '12'),
+    s('示例-0001', '2025-04-12 06:30:00', '2025-04-12 09:10:00', '灰喜鹊', 'Cyanopica cyanus', '朝阳区', '奥林匹克森林公园', '8'),
+    s('示例-0001', '2025-04-12 06:30:00', '2025-04-12 09:10:00', '普通翠鸟', 'Alcedo atthis', '朝阳区', '奥林匹克森林公园', '1'),
+    s('示例-0001', '2025-04-12 06:30:00', '2025-04-12 09:10:00', '黑尾蜡嘴雀', 'Eophona migratoria', '朝阳区', '奥林匹克森林公园', '0'),
+    s('示例-0002', '2025-04-13 07:00:00', '2025-04-13 08:00:00', '鸳鸯', 'Aix galericulata', '海淀区', '圆明园', '1'),
+    s('示例-0002', '2025-04-13 07:00:00', '2025-04-13 08:00:00', '小䴙䴘', 'Tachybaptus ruficollis', '海淀区', '圆明园', '1'),
+  ];
+  const IH = ['报告编号', '中文名', '拉丁名', '省', '州/市', '区/县', 'IUCN受胁级别', '国家保护等级', 'CITES保护等级', '经度（百度）', '纬度（百度）', '经度（火星）', '纬度（火星）', '鸟种数量', '记录时间', '描述'];
+  const I = [IH,
+    ['示例-1001', '白头鹎', 'Pycnonotus sinensis', '上海市', '上海市', '浦东新区', 'LC', '', '', 121.55266, 31.22561, 121.54610, 31.21980, 2, '2025-04-14 07:15:00', ''],
+    ['示例-1002', '乌鸫', 'Turdus mandarinus', '上海市', '上海市', '浦东新区', 'LC', '', '', 121.55266, 31.22561, 121.54610, 31.21980, 1, '2025-04-14 07:40:00', '草坪上觅食'],
+    ['示例-1003', '夜鹭', 'Nycticorax nycticorax', '上海市', '上海市', '浦东新区', 'LC', '', '', 121.55856, 31.23081, 121.55200, 31.22500, 5, '2025-04-14 08:05:00', ''],
+  ];
+  const P = [['省份', '州/市', '县/区', '观测点名称', '经度', '纬度'],
+    ['北京市', '北京市', '朝阳区', '奥林匹克森林公园', 116.401839, 40.024945],
+    ['北京市', '北京市', '海淀区', '圆明园', 116.31106, 40.015463],
+  ];
+  const a = parseSheet(S, '示例-定点记.xlsx'); a.sample = true; addSource(a);
+  const b = parseSheet(I, '示例-随手记.xlsx'); b.sample = true; addSource(b);
+  const c = parseSheet(P, '示例-观测点.xlsx'); c.sample = true; addSource(c);
+  refresh();
+}
+
+/* ---------- wiring ---------- */
+(function init(){
+  if (/MicroMessenger/i.test(navigator.userAgent)) $('#wechatNotice').hidden = false;
+  const saved = store.get('ebirdApiKey'); if (saved) $('#apiKey').value = saved;
+  const drop = $('#drop'), input = $('#fileInput');
+  drop.addEventListener('click', () => input.click());
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); input.click(); } });
+  input.addEventListener('change', () => { if (input.files.length) addFiles(input.files); input.value = ''; });
+  ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+  $('#sampleBtn').addEventListener('click', loadSample);
+  $('#clearBtn').addEventListener('click', () => { App.sources = []; App.overrides.clear(); refresh(); $('#apiStatus').textContent = ''; });
+  $('#matchBtn').addEventListener('click', matchHotspots);
+  $('#downloadBtn').addEventListener('click', download);
+  for (const id of ['observers', 'protoStationary', 'protoHistorical', 'onesToX', 'stationaryComplete']) $('#' + id).addEventListener('change', renderOutput);
+  $('#radius').addEventListener('change', refresh);
+  $('#locTable').addEventListener('change', e => {
+    const sel = e.target.closest('select[data-key]'); if (!sel) return;
+    App.overrides.set(sel.dataset.key, sel.value);
+    renderLocations(); renderOutput();
+  });
+  if (typeof XLSX === 'undefined'){
+    $('#files').innerHTML = '<div class="file"><ul><li>Excel 读取组件没有加载成功，请重新下载这个网页文件。</li></ul></div>';
+  }
+  refresh();
+})();
+</script>
+</body>
+</html>
