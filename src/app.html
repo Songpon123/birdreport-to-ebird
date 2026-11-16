@@ -46,8 +46,15 @@ header p{margin:0;color:var(--muted);max-width:62ch}
 .step > h2 .aside{margin-left:auto;font-size:13px;font-weight:400;color:var(--muted)}
 .muted{color:var(--muted)}
 .small{font-size:13px}
-ol.howto{margin:0;padding-left:1.4em;display:grid;gap:4px;max-width:70ch}
-ol.howto b{font-weight:600}
+.howto{margin:0;padding-left:1.4em;display:grid;gap:6px;max-width:72ch}
+.howto b{font-weight:600}
+.howto .tag{margin-right:4px}
+.rangebox{display:grid;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.rangebox > .label{font-weight:600;font-size:14px}
+.rangerow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.rangerow .field{width:170px}
+.downloads{display:grid;gap:10px}
+.downloads .row{gap:12px}
 details.help{border:1px solid var(--line);border-radius:8px;background:var(--sunken)}
 details.help > summary{cursor:pointer;padding:10px 14px;font-weight:600;list-style:none}
 details.help > summary::-webkit-details-marker{display:none}
@@ -80,7 +87,7 @@ details.help > div{padding:0 14px 14px}
 .field{display:grid;gap:5px;align-content:start;min-width:0}
 .field > label,.field > .label{font-weight:600;font-size:14px}
 .field .hint{font-size:13px;color:var(--muted)}
-.field input[type=number],.field input[type=text],.field input[type=password],.field select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 10px;width:100%;max-width:100%}
+.field input[type=number],.field input[type=text],.field input[type=password],.field input[type=date],.field select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:7px 10px;width:100%;max-width:100%}
 .choice{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
 .choice input{margin-top:5px;accent-color:var(--accent)}
 .apibox{border-top:1px solid var(--line);padding-top:14px;display:grid;gap:10px}
@@ -144,6 +151,17 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
 
   <section class="step" aria-labelledby="h3">
     <h2 id="h3"><span class="num">3</span>设置</h2>
+    <div class="rangebox">
+      <div class="label">只导出这段日期的记录</div>
+      <div class="rangerow">
+        <div class="field"><label for="dateFrom">从</label><input type="date" id="dateFrom"></div>
+        <div class="field"><label for="dateTo">到</label><input type="date" id="dateTo"></div>
+        <button class="btn ghost" id="trialBtn" type="button">试导入：只要最早的一天</button>
+        <button class="btn ghost" id="allDatesBtn" type="button">全部日期</button>
+      </div>
+      <div class="hint" id="rangeInfo">上传文件后，这里会显示记录的日期范围。</div>
+      <div class="notice"><b>注意重复：</b>已经在 eBird 记过的观鸟，再导入一次就会变成重复清单。请先到 eBird 的<a href="https://ebird.org/mychecklists" target="_blank" rel="noopener">我的清单（My Checklists）</a>看看已经有哪些日期，这里只选 eBird 里还没有的那段时间。</div>
+    </div>
     <div class="settings">
       <div class="field">
         <label for="observers">观测人数</label>
@@ -189,6 +207,18 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
 
   <section class="step" aria-labelledby="h4">
     <h2 id="h4"><span class="num">4</span>检查地点<span class="aside" id="locAside"></span></h2>
+    <details class="help" open>
+      <summary>这一步要做什么</summary>
+      <div>
+        <ul class="howto">
+          <li><span class="tag ok">eBird 热点</span> 会直接使用这个热点。导入时 eBird 通常会自动对上，确认即可。</li>
+          <li><span class="tag info">自定义地点（有坐标）</span> 会用记录里的坐标建立你自己的地点。导入时 eBird 按坐标定位，确认即可。</li>
+          <li><span class="tag warn">导入时需在地图上点选</span> 记录里没有坐标。可以回到第 2 步，上传「观测点管理」导出的文件来补上；否则导入时要在 eBird 地图上找到位置点一下。</li>
+          <li>匹配过热点后，最右边一列可以<b>改选别的热点</b>，或选「不用热点」。出现「有几个名字相近的热点，请确认」时，请打开下拉菜单选对的那个。</li>
+          <li>不想改的话可以跳过这一步，直接下载。</li>
+        </ul>
+      </div>
+    </details>
     <div id="locSummary" class="row"></div>
     <div id="locTable"><p class="empty">上传文件后，这里会列出所有地点。</p></div>
   </section>
@@ -197,23 +227,23 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
     <h2 id="h5"><span class="num">5</span>下载并导入 eBird</h2>
     <div id="outStats" class="stats"></div>
     <div id="outWarn"></div>
-    <div class="row">
-      <button class="btn big" id="downloadBtn" type="button" disabled>下载 eBird 导入文件（CSV）</button>
-      <span class="muted small" id="downloadNote"></span>
-    </div>
+    <div id="downloads" class="downloads"><p class="empty">还没有可以转换的记录。</p></div>
     <details class="help" id="previewBox">
       <summary>预览 CSV 前 30 行</summary>
       <div id="preview"></div>
     </details>
     <details class="help" open>
-      <summary>怎么导入 eBird</summary>
+      <summary>怎么导入 eBird（第一次请先看完）</summary>
       <div>
         <ol class="howto">
-          <li>先在 eBird 的 <b>Preferences（偏好设置）</b>里，把鸟种名称语言设为<b>中文（Sìm.）</b>，这样大部分鸟名能自动对上。</li>
-          <li>打开 <a href="https://ebird.org/import" target="_blank" rel="noopener">ebird.org/import</a>，格式选 <b>eBird Record Format (Extended)</b>（eBird 记录格式（扩展）），上传刚下载的 CSV。</li>
-          <li>eBird 会让你<b>确认地点</b>：有坐标的地点会自动定位；没有坐标的，在地图上点一下位置。</li>
-          <li>再<b>确认对不上的鸟种</b>（两边分类系统不同，少数鸟名需要手动选）。</li>
-          <li>建议第一次只导入少量清单试试，确认没问题再导全部。</li>
+          <li><b>确认不会重复</b>：所选日期内的观鸟，eBird 里还没有（见第 3 步）。第一次建议先用「试导入：只要最早的一天」。</li>
+          <li><b>设置鸟名语言</b>：登录 eBird，打开<a href="https://ebird.org/prefs" target="_blank" rel="noopener">偏好设置（Preferences）</a>，把鸟种名称（Species names）设为<b>中文（Sìm.）</b>并保存。这样大部分鸟名能自动对上。</li>
+          <li><b>上传文件</b>：打开<a href="https://ebird.org/import" target="_blank" rel="noopener">导入数据（Import Data）</a>，格式选 <b>eBird Record Format (Extended)</b>，选择刚下载的 CSV，点 <b>Import File</b>。eBird 每个文件最多 1 MB，本工具已经自动分好；有几个文件就上传几次。</li>
+          <li><b>等待处理</b>：文件格式正确时会显示正在处理；有问题时 eBird 会列出格式错误。</li>
+          <li><b>修正地点（Fix Locations）</b>：到<a href="https://ebird.org/import/status/all.htm" target="_blank" rel="noopener">我的 eBird → 管理导入的数据（Manage Imported Data）</a>打开这次导入。每个地点可以选 eBird 热点、选以前用过的地点（Your Locations），或用 <b>Find it on a Map</b> 在地图上点选。改完点 <b>Apply Fixes</b> 保存。</li>
+          <li><b>修正鸟种（Fix Species）</b>：两边分类系统不同，少数鸟名对不上。点 <b>Choose Species</b> 选对应的鸟种，再点 <b>Apply Fixes</b>。原鸽请选 Rock Pigeon (Feral Pigeon)。</li>
+          <li><b>检查结果</b>：到「我的 eBird」看看清单的日期、地点和数量对不对。</li>
+          <li><b>导错了怎么办</b>：在「管理导入的数据」里点这次导入的 <b>Delete import</b>，会删除这个文件导入的全部记录；改好后重新导入即可。只有个别清单有问题时，直接在 eBird 里编辑那份清单。</li>
         </ol>
       </div>
     </details>
@@ -254,8 +284,15 @@ function opts(){
     onesToX: $('#onesToX').checked,
     stationaryComplete: $('#stationaryComplete').checked,
     radiusKm: parseFloat($('#radius').value) || 0.5,
+    ...dateRange(),
   };
 }
+function dateRange(){
+  let from = $('#dateFrom').value || '', to = $('#dateTo').value || '';
+  if (from && to && from > to) [from, to] = [to, from];
+  return { from, to };
+}
+const inRange = (r, o) => { const k = dateKey(r.start); return (!o.from || k >= o.from) && (!o.to || k <= o.to); };
 
 /* ---------- reading birdreport.cn Excel ---------- */
 const normH = h => String(h ?? '').replace(/\s+/g, '').replace(/（/g, '(').replace(/）/g, ')');
@@ -518,10 +555,11 @@ function pointIndex(){
   };
 }
 function buildLocations(){
-  const map = new Map(), pts = pointIndex();
+  const map = new Map(), pts = pointIndex(), o = opts();
   App.pointCount = pts.size;
   for (const s of App.sources) for (const r of s.records){
     const key = locKeyOf(r); r.locKey = key;
+    if (!inRange(r, o)) continue;
     let L = map.get(key);
     if (!L){
       const reg = regionOf(r.province);
@@ -536,7 +574,6 @@ function buildLocations(){
     }
     L.n++;
   }
-  const o = opts();
   for (const L of map.values()) resolveLocation(L, o);
   App.locations = map;
 }
@@ -599,6 +636,7 @@ function buildOutput(){
   const o = opts();
   const lists = new Map();
   for (const s of App.sources) for (const r of s.records){
+    if (!inRange(r, o)) continue;
     const L = App.locations.get(r.locKey), lo = locOut(L);
     const key = r.kind === 'stationary'
       ? 'S|' + (r.report || r.place + '|' + dateKey(r.start) + '|' + timeStr(r.start))
@@ -615,7 +653,7 @@ function buildOutput(){
     if (r.kind === 'incidental') S.times.push(timeStr(r.start));
   }
 
-  const rows = [], warnings = [];
+  const rows = [], warnings = [], groups = [];
   let nX = 0, nSwitched = 0;
   const sorted = [...lists.values()].sort((a, b) => tMin(a.start) - tMin(b.start));
   for (const C of sorted){
@@ -654,6 +692,7 @@ function buildOutput(){
     let comment = 'Imported from birdreport.cn (中国观鸟记录中心)' + (ids.length ? '. Report ID: ' + (ids.length > 12 ? ids.slice(0, 12).join(', ') + ' …' : ids.join(', ')) : '') + '.';
     if (note) comment += ' ' + note;
 
+    const listRows = [];
     for (const it of items){
       const S = it.S;
       let name = S.cn || S.sci;
@@ -664,19 +703,30 @@ function buildOutput(){
       if (it.zero) sc.push('原记录数量为 0');
       if (multiTime && S.times.length) sc.push('记录时间 ' + [...new Set(S.times)].join('、'));
       if (it.val === 'X') nX++;
-      rows.push([
+      listRows.push([
         name, parts[0] || '', parts.slice(1).join(' '), it.val, sc.join('；'),
         C.lo.name, C.lo.lat === '' ? '' : (+C.lo.lat).toFixed(6), C.lo.lng === '' ? '' : (+C.lo.lng).toFixed(6),
         `${pad(C.start.m)}/${pad(C.start.d)}/${C.start.y}`, timeStr(C.start),
         C.lo.state, C.lo.country, protocol, C.observers || o.observers, duration, complete, '', '', comment,
       ]);
     }
+    rows.push(...listRows);
+    groups.push({ rows: listRows, date: dateKey(C.start) });
   }
   if (nSwitched) warnings.unshift(`${nSwitched} 份定点记缺少开始/结束时间或时间不合理，已改用 Historical（eBird 的定点方式必须有时长）。`);
   const csvField = v => { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const csv = '﻿' + rows.map(r => r.map(csvField).join(',')).join('\r\n') + (rows.length ? '\r\n' : '');
+  // eBird accepts at most 1 MB per import file: split by whole checklists
+  const enc = new TextEncoder(), LIMIT = 950 * 1000, files = [];
+  let cur = null;
+  for (const g of groups){
+    const text = g.rows.map(r => r.map(csvField).join(',') + '\r\n').join('');
+    const bytes = enc.encode(text).length;
+    if (!cur || (cur.bytes + bytes > LIMIT && cur.lists > 0)){ cur = { parts: [], bytes: 3, lists: 0, rows: 0, first: g.date, last: g.date }; files.push(cur); }
+    cur.parts.push(text); cur.bytes += bytes; cur.lists++; cur.rows += g.rows.length; cur.last = g.date;
+  }
+  for (const f of files){ f.csv = '\ufeff' + f.parts.join(''); delete f.parts; }
   const dates = sorted.map(C => dateKey(C.start));
-  App.output = { rows, csv, lists: sorted.length, species: new Set(rows.map(r => r[2] ? r[1] + ' ' + r[2] : r[0])).size, nX, warnings,
+  App.output = { rows, files, lists: sorted.length, species: new Set(rows.map(r => r[2] ? r[1] + ' ' + r[2] : r[0])).size, nX, warnings,
                  firstDate: dates[0], lastDate: dates[dates.length - 1] };
   return App.output;
 }
@@ -748,9 +798,17 @@ function renderLocations(){
 }
 function renderOutput(){
   const out = buildOutput();
-  const btn = $('#downloadBtn');
-  btn.disabled = !out.rows.length;
-  $('#downloadNote').textContent = out.rows.length ? `共 ${out.rows.length} 行` : '还没有可以转换的记录';
+  const kb = b => Math.max(1, Math.round(b / 1024)) + ' KB';
+  const box = $('#downloads');
+  if (!out.rows.length){
+    const hasAny = App.sources.some(s => s.records.length);
+    box.innerHTML = `<p class="empty">${hasAny ? '所选日期范围内没有记录，请在第 3 步调整日期。' : '还没有可以转换的记录。'}</p>`;
+  } else if (out.files.length === 1){
+    box.innerHTML = `<div class="row"><button class="btn big" type="button" data-file="0">下载 eBird 导入文件（CSV）</button><span class="muted small">${out.rows.length} 行 · ${kb(out.files[0].bytes)}</span></div>`;
+  } else {
+    box.innerHTML = `<p class="small" style="margin:0">记录较多，超过了 eBird 每个文件 1 MB 的限制，已按清单分成 <b>${out.files.length}</b> 个文件。请全部下载，在 eBird 分 ${out.files.length} 次导入。</p>`
+      + out.files.map((f, i) => `<div class="row"><button class="btn" type="button" data-file="${i}">下载第 ${i + 1} 个文件</button><span class="muted small">${f.first === f.last ? f.first : f.first + ' 至 ' + f.last} · ${f.lists} 份清单 · ${kb(f.bytes)}</span></div>`).join('');
+  }
   $('#outStats').innerHTML = out.rows.length ? [
     ['份清单', out.lists], ['条记录', out.rows.length], ['种/类', out.species], ['条数量写成 X', out.nX],
     ['日期范围', out.firstDate === out.lastDate ? out.firstDate : `${out.firstDate} 至 ${out.lastDate}`],
@@ -762,9 +820,23 @@ function renderOutput(){
     ? `<div class="table-wrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${out.rows.slice(0, 30).map(r => `<tr>${r.map((c, i) => `<td${i === 4 || i === 18 ? ' class="w"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="muted small">CSV 文件没有表头，这里的表头只是方便查看。</p>`
     : '<p class="empty">还没有数据。</p>';
 }
+function allDates(){
+  const ds = new Set();
+  for (const s of App.sources) for (const r of s.records) ds.add(dateKey(r.start));
+  return [...ds].sort();
+}
+function renderRange(){
+  const ds = allDates(), info = $('#rangeInfo'), f = $('#dateFrom'), t = $('#dateTo');
+  if (!ds.length){ info.textContent = '上传文件后，这里会显示记录的日期范围。'; for (const el of [f, t]){ el.min = ''; el.max = ''; } return; }
+  const first = ds[0], last = ds[ds.length - 1], o = dateRange();
+  for (const el of [f, t]){ el.min = first; el.max = last; }
+  const now = o.from || o.to ? `当前只导出 ${o.from || first} 至 ${o.to || last}。` : '当前导出全部日期。';
+  info.textContent = `文件里的记录从 ${first} 到 ${last}，共 ${ds.length} 天有记录。${now}`;
+}
 function refresh(){
   buildLocations();
   renderSources();
+  renderRange();
   renderLocations();
   renderOutput();
 }
@@ -804,13 +876,15 @@ async function matchHotspots(){
 }
 
 /* ---------- download ---------- */
-function download(){
-  if (!App.output || !App.output.rows.length) return;
-  const blob = new Blob([App.output.csv], { type: 'text/csv;charset=utf-8' });
+function download(i){
+  const files = App.output ? App.output.files : [];
+  const f = files[i];
+  if (!f) return;
+  const blob = new Blob([f.csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   const d = new Date();
   a.href = URL.createObjectURL(blob);
-  a.download = `ebird-import-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.csv`;
+  a.download = `ebird-import-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${files.length > 1 ? `-${i + 1}of${files.length}` : ''}.csv`;
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
 }
@@ -856,9 +930,20 @@ function loadSample(){
   ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
   $('#sampleBtn').addEventListener('click', loadSample);
-  $('#clearBtn').addEventListener('click', () => { App.sources = []; App.overrides.clear(); refresh(); $('#apiStatus').textContent = ''; });
+  $('#clearBtn').addEventListener('click', () => {
+    App.sources = []; App.overrides.clear();
+    $('#dateFrom').value = ''; $('#dateTo').value = '';
+    refresh(); $('#apiStatus').textContent = '';
+  });
   $('#matchBtn').addEventListener('click', matchHotspots);
-  $('#downloadBtn').addEventListener('click', download);
+  $('#downloads').addEventListener('click', e => { const b = e.target.closest('[data-file]'); if (b) download(+b.dataset.file); });
+  $('#dateFrom').addEventListener('change', refresh);
+  $('#dateTo').addEventListener('change', refresh);
+  $('#trialBtn').addEventListener('click', () => {
+    const ds = allDates(); if (!ds.length) return;
+    $('#dateFrom').value = ds[0]; $('#dateTo').value = ds[0]; refresh();
+  });
+  $('#allDatesBtn').addEventListener('click', () => { $('#dateFrom').value = ''; $('#dateTo').value = ''; refresh(); });
   for (const id of ['observers', 'protoStationary', 'protoHistorical', 'onesToX', 'stationaryComplete']) $('#' + id).addEventListener('change', renderOutput);
   $('#radius').addEventListener('change', refresh);
   $('#locTable').addEventListener('change', e => {
