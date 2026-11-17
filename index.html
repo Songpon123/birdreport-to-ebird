@@ -181,9 +181,9 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
       </div>
       <div class="field">
         <span class="label">鸟名写法</span>
-        <label class="choice"><input type="radio" name="nameLang" id="nameZh" value="zh" checked><span><b>eBird 中文名</b>：你的 eBird 偏好设置里鸟名是中文（Sìm.）时选这个。</span></label>
-        <label class="choice"><input type="radio" name="nameLang" id="nameEn" value="en"><span><b>eBird 英文名</b>：鸟名是英文时选这个。</span></label>
-        <span class="hint">学名会自动换成 eBird 2026 分类（例如 栗鹀 Emberiza rutila → Schoeniclus rutilus），导入时就不会显示为「未知鸟种」。</span>
+        <label class="choice"><input type="radio" name="nameLang" id="nameEn" value="en" checked><span><b>eBird 英文名（推荐）</b>：eBird 导入时按鸟名识别鸟种。实测英文名能直接识别，中文名即使学名正确也会显示为「未知鸟种」。</span></label>
+        <label class="choice"><input type="radio" name="nameLang" id="nameZh" value="zh"><span><b>eBird 中文名</b>：只在英文名导入后大量鸟种显示「未知」时再试。</span></label>
+        <span class="hint">鸟名和学名都会换成 eBird 2026 分类（例如 栗鹀 Emberiza rutila → Chestnut Bunting, Schoeniclus rutilus）。</span>
       </div>
     </div>
     <div class="apibox">
@@ -247,8 +247,8 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
       <div>
         <ol class="howto">
           <li><b>确认不会重复</b>：所选日期内的观鸟，eBird 里还没有（见第 3 步）。第一次建议先用「试导入：只要最早的一天」。</li>
-          <li><b>设置鸟名语言</b>：登录 eBird，打开<a href="https://ebird.org/prefs" target="_blank" rel="noopener">偏好设置（Preferences）</a>，把鸟种名称（Species names）设为<b>中文（Sìm.）</b>并保存。这样大部分鸟名能自动对上。</li>
-          <li><b>上传文件</b>：打开<a href="https://ebird.org/import" target="_blank" rel="noopener">导入数据（Import Data）</a>，格式选 <b>eBird Record Format (Extended)</b>，选择刚下载的 CSV，点 <b>Import File</b>。eBird 每个文件最多 1 MB，本工具已经自动分好；有几个文件就上传几次。</li>
+          <li><b>用电脑浏览器登录 eBird</b>：不要用 eBird 手机 App，App 里没有导入功能。不需要改 eBird 的语言设置。</li>
+          <li><b>上传文件</b>：在 eBird 网站顶部点 <b>Submit（提交）</b>→<b>Import Data（导入数据）</b>，或直接打开<a href="https://ebird.org/import" target="_blank" rel="noopener">ebird.org/import</a>。格式选 <b>eBird Record Format (Extended)</b>，选择刚下载的 CSV，点 <b>Import File</b>。eBird 每个文件最多 1 MB，本工具已经自动分好；有几个文件就上传几次。</li>
           <li><b>等待处理</b>：文件格式正确时会显示正在处理；有问题时 eBird 会列出格式错误。</li>
           <li><b>修正地点（Fix Locations）</b>：到<a href="https://ebird.org/import/status/all.htm" target="_blank" rel="noopener">我的 eBird → 管理导入的数据（Manage Imported Data）</a>打开这次导入。每个地点可以选 eBird 热点、选以前用过的地点（Your Locations），或用 <b>Find it on a Map</b> 在地图上点选。改完点 <b>Apply Fixes</b> 保存。</li>
           <li><b>修正鸟种（Fix Species）</b>：本工具已经把鸟名换成 eBird 2026 的名称，大部分会自动对上。剩下的（见上面「鸟种名称对照」里标为「需手动选择」的）点 <b>Choose Species</b> 选对应的鸟种，再点 <b>Apply Fixes</b>。原鸽请选 Rock Pigeon (Feral Pigeon)。</li>
