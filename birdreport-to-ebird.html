@@ -43,6 +43,10 @@ header p{margin:0;color:var(--muted);max-width:62ch}
 .update{border-radius:var(--radius);padding:12px 16px;background:var(--accent-soft);color:var(--ink);font-size:14px;border:1px solid var(--line)}
 .update b{font-weight:600}
 .update ul{margin:6px 0 0;padding-left:1.3em;display:grid;gap:2px}
+.updetails{margin-top:8px}
+.updetails > summary{cursor:pointer;color:var(--accent);font-weight:600}
+.updetails[open] > summary{margin-bottom:8px}
+.updetails .howto{gap:8px;max-width:none}
 .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px clamp(14px,3vw,24px);display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
 .step > h2{margin:0;font-size:18px;line-height:1.3;display:flex;gap:10px;align-items:baseline}
 .step > h2 .num{font-family:var(--mono);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.04em}
@@ -125,12 +129,24 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
   </header>
 
   <div class="update" role="note">
-    <b>2026-11-17 更新：鸟名和学名改用 eBird 2026 的写法。</b>
-    之前很多鸟种导入后显示「未知」（例如 栗鹀、灰头鹀、牛背鹭），是因为记录中心用的是旧分类的学名，现在已经换成 eBird 2026 的学名。另外实测发现：eBird 按鸟名识别鸟种，鸟名要和导入时 eBird 网页的语言一致（网页是中文就用中文名，英文就用英文名），在第 3 步「鸟名写法」里选。
-    <ul>
-      <li>在 eBird「修正鸟种」页面，如果右边已经出现<b>绿色的匹配</b>，直接点<b>应用修正</b>即可。</li>
-      <li>上次导入后<b>还有很多鸟种显示「未知」</b>：到 eBird 的<a href="https://ebird.org/import/status/all.htm" target="_blank" rel="noopener">管理导入的数据（Manage Imported Data）</a>，点那次导入的 <b>Delete import</b> 删除，再用这个新版本重新转换、重新导入。已经手动修正好的不需要重做。</li>
-    </ul>
+    <b>2026-11-17 更新：导入 eBird 时显示「未知鸟种」的问题基本解决了。</b>
+    鸟名和学名现在都按 eBird 2026 的写法转换；鸟名的语言要和导入时 eBird 网页的语言一致（第 3 步「鸟名写法」，已按浏览器语言自动选好）。
+    <details class="updetails">
+      <summary>查看详细更新说明</summary>
+      <ol class="howto">
+        <li><b>学名换成 eBird 2026 分类。</b>记录中心用的是《中国鸟类分类与分布名录》（郑光美）第四版的学名，eBird 2026 改了不少属名，例如 栗鹀 <i>Emberiza rutila</i> → <i>Schoeniclus rutilus</i>，赤腹鹰 <i>Accipiter soloensis</i> → <i>Tachyspiza soloensis</i>，牛背鹭 <i>Bubulcus coromandus</i> → <i>Ardea coromanda</i>。旧学名会让 eBird 认不出鸟种，现在会自动换成新学名。名录里 1,524 种中，1,509 种能自动对应。</li>
+        <li><b>鸟名换成 eBird 自己的写法。</b>有 140 种的中文名和 eBird 不一样，例如 白骨顶 → 白骨顶 (骨顶鸡)、金鸻 → 金斑鸻，现在会写 eBird 使用的名称。</li>
+        <li><b>鸟名的语言要和 eBird 网页一致。</b>实测：eBird 导入时按鸟名识别鸟种，学名正确也不能代替鸟名。eBird 网页是中文时，中文名能识别；网页是英文时，中文名会显示为「未知」，要用英文名。第 3 步「鸟名写法」会按浏览器语言自动选好；如果你的 eBird 网页语言和浏览器不同，请手动改。</li>
+        <li><b>14 种「eBird 里不是独立种」的鸟也能自动对应了。</b>eBird 把它们当作别的种的亚种组，或并入了别的种，例如：华西柳莺 → Tickell's Leaf Warbler (Alpine) <i>Phylloscopus affinis occisinensis</i>，四川林鸮 → 长尾林鸮 (四川林鸮)，斑腰燕 → 金腰燕 (斑腰燕)，中华长尾雀 → 长尾雀 (中华长尾雀)，西南灰眉岩鹀 → 灰眉岩鹀 (西南)；大山雀 <i>Parus minor</i> → Asian Tit、海南画眉 → 画眉（这两种是并入，转换结果里会标「请确认」）。只有 环江鹪鹛 eBird 还没有收录，需要导入时手动选。</li>
+        <li><b>第 5 步多了「鸟种名称对照」。</b>列出这次转换中所有改了名称的鸟种，标出「已改学名」「亚种组」「请确认」「需手动选择」，导入前可以先看一眼。</li>
+      </ol>
+      <p style="margin:8px 0 4px"><b>如果你之前已经导入过：</b></p>
+      <ul>
+        <li>eBird「修正鸟种」页面里右边已经出现<b>绿色的匹配</b>：确认没错，直接点<b>应用修正</b>。已知 山斑鸠 即使名称完全一致，eBird 也会先显示为「未知」并给出绿色匹配，点应用修正即可。</li>
+        <li><b>还有很多鸟种显示「未知」</b>：到 eBird 的<a href="https://ebird.org/import/status/all.htm" target="_blank" rel="noopener">管理导入的数据（Manage Imported Data）</a>，点那次导入的 <b>Delete import</b> 删除（会删除这个文件导入的全部记录），再用新版本重新转换、重新导入。</li>
+        <li>已经手动修正好的，不需要重做。</li>
+      </ul>
+    </details>
   </div>
 
   <div class="notice" id="wechatNotice" hidden>你正在微信内置浏览器中打开。微信里无法下载文件，请点右上角「…」，选择「在浏览器打开」，最好用电脑浏览器。</div>
