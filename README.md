@@ -60,6 +60,12 @@
 - 测试用的假数据：`node tests/make_samples.js` 生成到 `tests/samples/`。
 - 鸟名对照表：`taxonomy/cn_to_ebird_2026.json`（记录中心名录 → eBird 2026，按学名、英文名、学名词尾三步匹配，来自 Bird Finder 项目）。`python3 taxonomy/build_name_table.py` 会再从 eBird 取简体中文名，生成页面使用的 `taxonomy/name_table.json`，然后运行 `python3 build.py`。
 
+## 更新记录
+
+- **2026-11-17**：鸟名改用 eBird 英文名 + eBird 2026 学名。实测 eBird 导入时按鸟名识别鸟种，中文名即使学名正确也会显示为「未知鸟种」。之前导入后还有鸟种显示「未知」的，请在 eBird「管理导入的数据」里删除那次导入（Delete import），用新版重新转换、重新导入；已经手动修正好的不需要重做。
+- **2026-11-17**：增加日期范围和「试导入一天」、超过 1 MB 自动分文件、观测点坐标、百度坐标转换。
+- **2026-11-16**：第一版。
+
 ## 许可
 
 本项目代码使用 [MIT 许可](LICENSE)，欢迎修改和转发。`vendor/xlsx.full.min.js` 是 SheetJS，使用 Apache-2.0 许可。
