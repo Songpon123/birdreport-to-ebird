@@ -99,5 +99,16 @@ const html = '<table>' + pts.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join(
 fs.writeFileSync(path.join(out, '观测点导出.xls'), '<html><head><meta charset="utf-8"></head><body>' + html + '</body></html>');
 console.log('wrote 观测点导出.xls');
 
+// Species-name test: the 9 species eBird's importer flagged on 2026-11-17, plus edge cases
+// (one-character eBird name, no eBird species, epithet match, eBird Chinese name differs, not in list, stray spaces).
+const nm = (cn, sci, n = '1') => s('BR900', '2025-07-01 06:00:00', '2025-07-01 08:00:00', cn, sci, '北京市', '北京市', '海淀区', '圆明园', n);
+save('鸟名测试-定点记.xlsx', [SH,
+  nm('华西柳莺', 'Phylloscopus occisinensis'), nm('栗鹀', 'Emberiza rutila', '2'), nm('灰头鹀', 'Emberiza spodocephala', '3'),
+  nm('牛背鹭', 'Bubulcus coromandus', '4'), nm('白眉鹀', 'Emberiza tristrami'), nm('赤腹鹰', 'Accipiter soloensis'),
+  nm('黄眉鹀', 'Emberiza chrysophrys'), nm('黄胸鹀', 'Emberiza aureola'), nm('山斑鸠', 'Streptopelia orientalis', '5'),
+  nm('鹗', 'Pandion haliaetus'), nm('大山雀', 'Parus minor', '6'), nm('蒙古沙鸻', 'Charadrius mongolus'),
+  nm('白骨顶', 'Fulica atra', '7'), nm('鹰属未知种', 'Accipiter sp.'), nm('云石斑鸭', 'Marmaronetta  angustirostris '),
+]);
+
 // numbers for the page's built-in example
 console.log('example BD', JSON.stringify({ olympic: B.olympic.map(r6), yuanming: B.yuanming.map(r6) }));

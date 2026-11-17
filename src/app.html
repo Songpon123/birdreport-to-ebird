@@ -179,6 +179,12 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
         <label class="choice"><input type="checkbox" id="stationaryComplete" checked><span>定点记是<b>完整记录</b>（看到、听到能认出的鸟都记了）。</span></label>
         <span class="hint">数量为空或 0 的记录一律写成 <code>X</code>，不会编造数量。</span>
       </div>
+      <div class="field">
+        <span class="label">鸟名写法</span>
+        <label class="choice"><input type="radio" name="nameLang" id="nameZh" value="zh" checked><span><b>eBird 中文名</b>：你的 eBird 偏好设置里鸟名是中文（Sìm.）时选这个。</span></label>
+        <label class="choice"><input type="radio" name="nameLang" id="nameEn" value="en"><span><b>eBird 英文名</b>：鸟名是英文时选这个。</span></label>
+        <span class="hint">学名会自动换成 eBird 2026 分类（例如 栗鹀 Emberiza rutila → Schoeniclus rutilus），导入时就不会显示为「未知鸟种」。</span>
+      </div>
     </div>
     <div class="apibox">
       <div>
@@ -227,6 +233,10 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
     <h2 id="h5"><span class="num">5</span>下载并导入 eBird</h2>
     <div id="outStats" class="stats"></div>
     <div id="outWarn"></div>
+    <details class="help" id="namesBox">
+      <summary id="namesSummary">鸟种名称对照</summary>
+      <div id="names"></div>
+    </details>
     <div id="downloads" class="downloads"><p class="empty">还没有可以转换的记录。</p></div>
     <details class="help" id="previewBox">
       <summary>预览 CSV 前 30 行</summary>
@@ -241,7 +251,7 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
           <li><b>上传文件</b>：打开<a href="https://ebird.org/import" target="_blank" rel="noopener">导入数据（Import Data）</a>，格式选 <b>eBird Record Format (Extended)</b>，选择刚下载的 CSV，点 <b>Import File</b>。eBird 每个文件最多 1 MB，本工具已经自动分好；有几个文件就上传几次。</li>
           <li><b>等待处理</b>：文件格式正确时会显示正在处理；有问题时 eBird 会列出格式错误。</li>
           <li><b>修正地点（Fix Locations）</b>：到<a href="https://ebird.org/import/status/all.htm" target="_blank" rel="noopener">我的 eBird → 管理导入的数据（Manage Imported Data）</a>打开这次导入。每个地点可以选 eBird 热点、选以前用过的地点（Your Locations），或用 <b>Find it on a Map</b> 在地图上点选。改完点 <b>Apply Fixes</b> 保存。</li>
-          <li><b>修正鸟种（Fix Species）</b>：两边分类系统不同，少数鸟名对不上。点 <b>Choose Species</b> 选对应的鸟种，再点 <b>Apply Fixes</b>。原鸽请选 Rock Pigeon (Feral Pigeon)。</li>
+          <li><b>修正鸟种（Fix Species）</b>：本工具已经把鸟名换成 eBird 2026 的名称，大部分会自动对上。剩下的（见上面「鸟种名称对照」里标为「需手动选择」的）点 <b>Choose Species</b> 选对应的鸟种，再点 <b>Apply Fixes</b>。原鸽请选 Rock Pigeon (Feral Pigeon)。</li>
           <li><b>检查结果</b>：到「我的 eBird」看看清单的日期、地点和数量对不对。</li>
           <li><b>导错了怎么办</b>：在「管理导入的数据」里点这次导入的 <b>Delete import</b>，会删除这个文件导入的全部记录；改好后重新导入即可。只有个别清单有问题时，直接在 eBird 里编辑那份清单。</li>
         </ol>
@@ -283,6 +293,7 @@ function opts(){
     stationaryProtocol: $('#protoHistorical').checked ? 'Historical' : 'Stationary',
     onesToX: $('#onesToX').checked,
     stationaryComplete: $('#stationaryComplete').checked,
+    nameLang: $('#nameEn').checked ? 'en' : 'zh',
     radiusKm: parseFloat($('#radius').value) || 0.5,
     ...dateRange(),
   };
@@ -626,8 +637,30 @@ function locState(L){
   return L.wgs ? 'coords' : 'pin';
 }
 
-/* ---------- build eBird rows ---------- */
+/* ---------- species names: Chinese list (郑光美 4th ed.) -> eBird 2026 ----------
+   build.py fills NAME_TABLE from taxonomy/name_table.json:
+   {"<Chinese-list Latin>": [eBird sci, eBird English, eBird 中文, method, 记录中心中文名]}
+   method: exact | english (matched by English name) | epithet (matched by epithet; check) | "" (no single species) */
+const NAME_TABLE = /*NAMETABLE*/null;
 const SPECIAL_NAMES = { '鹗': '鹗 (鱼鹰)', '隼': '隼形目未知' };
+const normSci = s => String(s || '').trim().split(/\s+/).join(' ');
+let NAME_BY_SCI = null, NAME_BY_CN = null;
+function nameIndex(){
+  if (NAME_BY_SCI) return;
+  NAME_BY_SCI = new Map(); NAME_BY_CN = new Map();
+  const t = (NAME_TABLE && NAME_TABLE.t) || {};
+  for (const k in t){
+    const [sci, en, zh, method, cn] = t[k];
+    const e = { from: k, sci, en, zh, method, cn };
+    NAME_BY_SCI.set(normSci(k).toLowerCase(), e);
+    if (cn) NAME_BY_CN.set(cn, NAME_BY_CN.has(cn) ? null : e); // null = name used twice, not usable
+  }
+}
+// returns {sci, en, zh, method, cn} or null when the name is not in the table
+function lookupName(sci, cn){
+  nameIndex();
+  return NAME_BY_SCI.get(normSci(sci).toLowerCase()) || (cn && NAME_BY_CN.get(cn)) || null;
+}
 const tMin = t => Date.UTC(t.y, t.m - 1, t.d, t.H || 0, t.M || 0) / 60000;
 const dateKey = t => `${t.y}-${pad(t.m)}-${pad(t.d)}`;
 const timeStr = t => t.H == null ? '' : `${pad(t.H)}:${pad(t.M || 0)}`;
@@ -645,9 +678,12 @@ function buildOutput(){
     if (!C){ C = { key, kind: r.kind, lo, start: r.start, end: r.end, reports: new Set(), species: new Map(), observers: r.observers, times: new Set() }; lists.set(key, C); }
     if (r.report) C.reports.add(r.report);
     if (r.kind === 'incidental'){ if (tMin(r.start) < tMin(C.start)) C.start = r.start; C.times.add(timeStr(r.start)); }
-    const sk = r.sci || r.cn;
+    // two Chinese-list taxa that eBird lumps into one species become one row
+    const m = lookupName(r.sci, r.cn);
+    const ok = m && m.sci;
+    const sk = ok ? 'e|' + m.sci : 'c|' + (r.sci || r.cn);
     let S = C.species.get(sk);
-    if (!S){ S = { cn: r.cn, sci: r.sci, counts: [], notes: [], times: [] }; C.species.set(sk, S); }
+    if (!S){ S = { cn: r.cn, sci: r.sci, m: ok ? m : null, inTable: !!m, counts: [], notes: [], times: [] }; C.species.set(sk, S); }
     S.counts.push(r.count);
     if (r.note && !S.notes.includes(r.note)) S.notes.push(r.note);
     if (r.kind === 'incidental') S.times.push(timeStr(r.start));
@@ -655,6 +691,19 @@ function buildOutput(){
 
   const rows = [], warnings = [], groups = [];
   let nX = 0, nSwitched = 0;
+  // what happened to each species name, for the table in step 5
+  const nameReport = new Map();
+  const noteSpecies = (S, outName) => {
+    const k = (S.sci || '') + '|' + S.cn;
+    if (nameReport.has(k)) { nameReport.get(k).n++; return; }
+    let kind;
+    if (!S.m) kind = S.inTable ? 'none' : 'unknown';          // eBird has no single species for it / not in the Chinese list
+    else if (S.m.method === 'epithet') kind = 'check';
+    else if (normSci(S.m.sci) !== normSci(S.sci)) kind = 'sci';
+    else if (outName !== S.cn) kind = 'name';
+    else kind = 'same';
+    nameReport.set(k, { cn: S.cn, sci: S.sci, out: outName, outSci: S.m ? S.m.sci : S.sci, kind, n: 1 });
+  };
   const sorted = [...lists.values()].sort((a, b) => tMin(a.start) - tMin(b.start));
   for (const C of sorted){
     let protocol, duration = '', complete, note = '';
@@ -695,10 +744,21 @@ function buildOutput(){
     const listRows = [];
     for (const it of items){
       const S = it.S;
-      let name = S.cn || S.sci;
-      if (SPECIAL_NAMES[name]) name = SPECIAL_NAMES[name];
-      if (name.length < 2) name += ' ';
-      const parts = S.sci.split(/\s+/).filter(Boolean);
+      let name, sciOut;
+      if (S.m){
+        // eBird's own name and 2026 scientific name, so the importer can match the species
+        name = o.nameLang === 'en' ? S.m.en : S.m.zh;
+        if (!name || name.length < 2) name = S.m.en; // eBird rejects one-character names (e.g. 鹗)
+        sciOut = S.m.sci;
+        noteSpecies(S, name);
+      } else {
+        name = S.cn || S.sci;
+        if (SPECIAL_NAMES[name]) name = SPECIAL_NAMES[name];
+        if (name.length < 2) name += ' ';
+        sciOut = S.sci;
+        noteSpecies(S, name);
+      }
+      const parts = normSci(sciOut).split(' ').filter(Boolean);
       const sc = [...S.notes];
       if (it.zero) sc.push('原记录数量为 0');
       if (multiTime && S.times.length) sc.push('记录时间 ' + [...new Set(S.times)].join('、'));
@@ -726,7 +786,7 @@ function buildOutput(){
   }
   for (const f of files){ f.csv = '\ufeff' + f.parts.join(''); delete f.parts; }
   const dates = sorted.map(C => dateKey(C.start));
-  App.output = { rows, files, lists: sorted.length, species: new Set(rows.map(r => r[2] ? r[1] + ' ' + r[2] : r[0])).size, nX, warnings,
+  App.output = { rows, files, names: [...nameReport.values()], lists: sorted.length, species: new Set(rows.map(r => r[2] ? r[1] + ' ' + r[2] : r[0])).size, nX, warnings,
                  firstDate: dates[0], lastDate: dates[dates.length - 1] };
   return App.output;
 }
@@ -815,10 +875,35 @@ function renderOutput(){
   ].map(([k, v]) => `<div class="stat"><b>${esc(v)}</b><span>${k}</span></div>`).join('') : '';
   $('#outWarn').innerHTML = out.warnings.length
     ? `<ul class="warnlist">${out.warnings.slice(0, 12).map(w => `<li>${esc(w)}</li>`).join('')}${out.warnings.length > 12 ? `<li>还有 ${out.warnings.length - 12} 条……</li>` : ''}</ul>` : '';
+  renderNames(out.names);
   const head = ['鸟名', '属', '种', '数量', '鸟种备注', '地点', '纬度', '经度', '日期', '开始时间', '省', '国家', '方式', '人数', '时长(分钟)', '完整记录', '距离', '面积', '清单备注'];
   $('#preview').innerHTML = out.rows.length
     ? `<div class="table-wrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${out.rows.slice(0, 30).map(r => `<tr>${r.map((c, i) => `<td${i === 4 || i === 18 ? ' class="w"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p class="muted small">CSV 文件没有表头，这里的表头只是方便查看。</p>`
     : '<p class="empty">还没有数据。</p>';
+}
+const NAME_KIND = {
+  none:    ['bad',  '需手动选择', 'eBird 2026 里没有对应的单一鸟种（可能被合并或拆分）。保持原名，导入时在 Fix Species 里手动选。'],
+  unknown: ['warn', '不在对照表', '记录中心名录里没有这个名称，保持原名。eBird 认不出时在 Fix Species 里手动选。'],
+  check:   ['warn', '请确认', '按学名自动对应到 eBird 的种，可能是拆分后的其中一种，请看一眼是否正确。'],
+  sci:     ['ok',   '已改学名', 'eBird 2026 用了新的属名或学名。'],
+  name:    ['info', '已改中文名', '换成 eBird 使用的名称。'],
+};
+const NAME_ORDER = { none: 0, unknown: 1, check: 2, sci: 3, name: 4, same: 5 };
+function renderNames(names){
+  const box = $('#names'), sum = $('#namesSummary');
+  if (!names.length){ sum.textContent = '鸟种名称对照'; box.innerHTML = '<p class="empty">还没有数据。</p>'; return; }
+  const cnt = k => names.filter(x => x.kind === k).length;
+  const manual = cnt('none') + cnt('unknown');
+  sum.textContent = `鸟种名称对照：共 ${names.length} 种，${cnt('sci')} 种换成 eBird 2026 学名，${cnt('name')} 种换成 eBird 中文名`
+    + (cnt('check') ? `，${cnt('check')} 种请确认` : '') + (manual ? `，${manual} 种可能需要在 eBird 手动选择` : '');
+  const shown = names.filter(x => x.kind !== 'same')
+    .sort((a, b) => NAME_ORDER[a.kind] - NAME_ORDER[b.kind] || a.cn.localeCompare(b.cn, 'zh'));
+  if (!shown.length){ box.innerHTML = '<p class="muted small">所有鸟名都和 eBird 一致，不需要改动。</p>'; return; }
+  const cell = (n, s) => `${esc(n)}<div class="muted small"><i>${esc(s)}</i></div>`;
+  box.innerHTML = `<div class="table-wrap"><table><thead><tr><th>记录中心</th><th>导入 eBird 用</th><th>状态</th><th>说明</th></tr></thead><tbody>${
+    shown.map(x => { const [cls, label, why] = NAME_KIND[x.kind];
+      return `<tr><td>${cell(x.cn, x.sci)}</td><td>${cell(x.out, x.outSci)}</td><td><span class="tag ${cls}">${label}</span></td><td class="w small">${esc(why)}</td></tr>`; }).join('')
+  }</tbody></table></div><p class="muted small">对照表：${esc((NAME_TABLE && NAME_TABLE.version) || '未加载')}</p>`;
 }
 function allDates(){
   const ds = new Set();
@@ -944,7 +1029,7 @@ function loadSample(){
     $('#dateFrom').value = ds[0]; $('#dateTo').value = ds[0]; refresh();
   });
   $('#allDatesBtn').addEventListener('click', () => { $('#dateFrom').value = ''; $('#dateTo').value = ''; refresh(); });
-  for (const id of ['observers', 'protoStationary', 'protoHistorical', 'onesToX', 'stationaryComplete']) $('#' + id).addEventListener('change', renderOutput);
+  for (const id of ['observers', 'protoStationary', 'protoHistorical', 'onesToX', 'stationaryComplete', 'nameZh', 'nameEn']) $('#' + id).addEventListener('change', renderOutput);
   $('#radius').addEventListener('change', refresh);
   $('#locTable').addEventListener('change', e => {
     const sel = e.target.closest('select[data-key]'); if (!sel) return;

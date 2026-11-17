@@ -34,6 +34,7 @@
 | 随手记的「火星坐标」(GCJ-02) 直接当 GPS 用，位置偏几百米 | 自动转换成 WGS-84（北京一带约偏 500 多米）；只有百度坐标时也能转换 |
 | 定点记没有坐标，导入 eBird 时每个地点都要手动在地图上找 | 上传观测点列表后自动补上坐标 |
 | 逐页导出很麻烦 | 不勾选任何报告直接导出（见上方说明） |
+| 记录中心用郑光美第四版学名，eBird 2026 改了很多属名（如 Emberiza → Schoeniclus），导入时显示「未知鸟种」 | 自动换成 eBird 2026 的学名和 eBird 中文名（或英文名）。1,524 种中 1,509 种能自动对应；10 种按学名词尾对应，页面上标为「请确认」；15 种 eBird 没有单一对应种，导入时手动选 |
 | 和 eBird 里已有的清单重复 | 可以只导出某段日期；有「试导入一天」按钮 |
 | 记录多时超过 eBird 1 MB 的文件限制 | 自动按清单分成多个文件，同一份清单不会被拆开 |
 | 数量为空或 0 时写成 1 | 写成 `X`，不编造数量；原数量为 0 会在备注里说明 |
@@ -57,6 +58,7 @@
 - 源文件：`src/app.html`；Excel 读取组件：`vendor/xlsx.full.min.js`（SheetJS 0.18.5，Apache-2.0）。
 - 修改源文件后运行 `python3 build.py`，会把组件内联进 `birdreport-to-ebird.html` 和 `index.html`（GitHub Pages 用）。
 - 测试用的假数据：`node tests/make_samples.js` 生成到 `tests/samples/`。
+- 鸟名对照表：`taxonomy/cn_to_ebird_2026.json`（记录中心名录 → eBird 2026，按学名、英文名、学名词尾三步匹配，来自 Bird Finder 项目）。`python3 taxonomy/build_name_table.py` 会再从 eBird 取简体中文名，生成页面使用的 `taxonomy/name_table.json`，然后运行 `python3 build.py`。
 
 ## 许可
 
