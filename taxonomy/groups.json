@@ -1,0 +1,22 @@
+{
+  "about": "Hand-checked matches for Chinese-list species that have no single eBird 2026 species. eBird keeps them as a subspecies group (issf), a form, or inside a larger species. Checked 2026-11-17 against the eBird taxonomy (zh_SIM, issf/form/spuh/slash). eBird's own importer suggested alplew1 for 华西柳莺.",
+  "groups": {
+    "Apus nipalensis":            {"code": "houswi1",  "note": "House Swift = Little Swift [nipalensis Group]"},
+    "Strix davidi":               {"code": "pedowl1",  "note": "Pere David's Owl = Ural Owl subspecies davidi"},
+    "Parus minor":                {"code": "cintit13", "note": "Japanese Tit is part of Asian Tit (Parus cinereus); covers minor and commixtus"},
+    "Cecropis striolata":         {"code": "strswa2",  "note": "Striated Swallow = Eastern Red-rumped Swallow [striolata Group]"},
+    "Phylloscopus occisinensis":  {"code": "alplew1",  "note": "Alpine Leaf Warbler = Tickell's Leaf Warbler (Alpine); eBird's importer suggests this"},
+    "Aegithalos bonvaloti":       {"code": "bkbtit4",  "note": "Black-browed Bushtit = Black-throated Bushtit bonvaloti/obscuratus"},
+    "Curruca minula":             {"code": "smawhi1",  "note": "Desert Whitethroat = Lesser Whitethroat minula"},
+    "Curruca althaea":            {"code": "humwhi1",  "note": "Hume's Whitethroat = Lesser Whitethroat althaea"},
+    "Cyanoderma ambiguum":        {"code": "bucbab1",  "note": "Buff-chested Babbler = Rufous-fronted Babbler [ambiguum Group]"},
+    "Garrulax owstoni":           {"code": "melthr",   "note": "Hainan Hwamei is included in Chinese Hwamei (Garrulax canorus)"},
+    "Chloropsis lazulina":        {"code": "orblea3",  "note": "Grayish-crowned Leafbird = Orange-bellied Leafbird lazulina/melliana"},
+    "Carpodacus lepidus":         {"code": "lotros8",  "note": "Chinese Long-tailed Rosefinch = Long-tailed Rosefinch lepidus/henrici"},
+    "Acanthis hornemanni":        {"code": "hoared",   "note": "Arctic Redpoll = Redpoll (Hoary) form"},
+    "Emberiza yunnanensis":       {"code": "godbun3",  "note": "Southern Rock Bunting = Godlewski's Bunting yunnanensis/khamensis"}
+  },
+  "left_unmatched": {
+    "Gypsophila huanjiangensis": "Huanjiang Wren-Babbler (described 2022) is not in eBird yet; the nearest is the spuh liwbab1 (annamensis/calcicola/crispifrons), which does not include it. Choose by hand."
+  }
+}

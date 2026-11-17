@@ -711,6 +711,8 @@ function buildOutput(){
     let kind;
     if (!S.m) kind = S.inTable ? 'none' : 'unknown';          // eBird has no single species for it / not in the Chinese list
     else if (S.m.method === 'epithet') kind = 'check';
+    else if (S.m.method === 'group') kind = 'group';
+    else if (S.m.method === 'lump') kind = 'lump';
     else if (normSci(S.m.sci) !== normSci(S.sci)) kind = 'sci';
     else if (outName !== S.cn) kind = 'name';
     else kind = 'same';
@@ -897,17 +899,20 @@ const NAME_KIND = {
   none:    ['bad',  '需手动选择', 'eBird 2026 里没有对应的单一鸟种（可能被合并或拆分）。保持原名，导入时在 Fix Species 里手动选。'],
   unknown: ['warn', '不在对照表', '记录中心名录里没有这个名称，保持原名。eBird 认不出时在 Fix Species 里手动选。'],
   check:   ['warn', '请确认', '按学名自动对应到 eBird 的种，可能是拆分后的其中一种，请看一眼是否正确。'],
+  lump:    ['warn', '请确认', 'eBird 把它并入了另一个种，已对应到那个种。'],
+  group:   ['info', '亚种组', 'eBird 把它当作另一个种的亚种组，已对应到这个亚种组。'],
   sci:     ['ok',   '已改学名', 'eBird 2026 用了新的属名或学名。'],
   name:    ['info', '已改中文名', '换成 eBird 使用的名称。'],
 };
-const NAME_ORDER = { none: 0, unknown: 1, check: 2, sci: 3, name: 4, same: 5 };
+const NAME_ORDER = { none: 0, unknown: 1, check: 2, lump: 2, group: 3, sci: 4, name: 5, same: 6 };
 function renderNames(names){
   const box = $('#names'), sum = $('#namesSummary');
   if (!names.length){ sum.textContent = '鸟种名称对照'; box.innerHTML = '<p class="empty">还没有数据。</p>'; return; }
   const cnt = k => names.filter(x => x.kind === k).length;
   const manual = cnt('none') + cnt('unknown');
   sum.textContent = `鸟种名称对照：共 ${names.length} 种，${cnt('sci')} 种换成 eBird 2026 学名，${cnt('name')} 种换成 eBird 中文名`
-    + (cnt('check') ? `，${cnt('check')} 种请确认` : '') + (manual ? `，${manual} 种可能需要在 eBird 手动选择` : '');
+    + (cnt('group') ? `，${cnt('group')} 种对应到 eBird 亚种组` : '')
+    + (cnt('check') + cnt('lump') ? `，${cnt('check') + cnt('lump')} 种请确认` : '') + (manual ? `，${manual} 种可能需要在 eBird 手动选择` : '');
   const shown = names.filter(x => x.kind !== 'same')
     .sort((a, b) => NAME_ORDER[a.kind] - NAME_ORDER[b.kind] || a.cn.localeCompare(b.cn, 'zh'));
   if (!shown.length){ box.innerHTML = '<p class="muted small">所有鸟名都和 eBird 一致，不需要改动。</p>'; return; }
