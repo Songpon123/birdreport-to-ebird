@@ -125,11 +125,11 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
   </header>
 
   <div class="update" role="note">
-    <b>2026-11-17 更新：鸟名改用 eBird 英文名 + eBird 2026 学名。</b>
-    实测 eBird 导入时按鸟名识别鸟种：中文名即使学名正确，也会显示为「未知鸟种」；英文名可以直接识别。之前导入后很多鸟种显示「未知」（例如 栗鹀、灰头鹀、山斑鸠）的，就是这个原因。
+    <b>2026-11-17 更新：鸟名和学名改用 eBird 2026 的写法。</b>
+    之前很多鸟种导入后显示「未知」（例如 栗鹀、灰头鹀、牛背鹭），是因为记录中心用的是旧分类的学名，现在已经换成 eBird 2026 的学名。另外实测发现：eBird 按鸟名识别鸟种，鸟名要和导入时 eBird 网页的语言一致（网页是中文就用中文名，英文就用英文名），在第 3 步「鸟名写法」里选。
     <ul>
-      <li>上次导入后<b>还有鸟种显示「未知」</b>：到 eBird 的<a href="https://ebird.org/import/status/all.htm" target="_blank" rel="noopener">管理导入的数据（Manage Imported Data）</a>，点那次导入的 <b>Delete import</b> 删除，再用这个新版本重新转换、重新导入。</li>
-      <li>已经在 eBird 里<b>手动修正好</b>的，不需要重做。</li>
+      <li>在 eBird「修正鸟种」页面，如果右边已经出现<b>绿色的匹配</b>，直接点<b>应用修正</b>即可。</li>
+      <li>上次导入后<b>还有很多鸟种显示「未知」</b>：到 eBird 的<a href="https://ebird.org/import/status/all.htm" target="_blank" rel="noopener">管理导入的数据（Manage Imported Data）</a>，点那次导入的 <b>Delete import</b> 删除，再用这个新版本重新转换、重新导入。已经手动修正好的不需要重做。</li>
     </ul>
   </div>
 
@@ -193,9 +193,9 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
       </div>
       <div class="field">
         <span class="label">鸟名写法</span>
-        <label class="choice"><input type="radio" name="nameLang" id="nameEn" value="en" checked><span><b>eBird 英文名（推荐）</b>：eBird 导入时按鸟名识别鸟种。实测英文名能直接识别，中文名即使学名正确也会显示为「未知鸟种」。</span></label>
-        <label class="choice"><input type="radio" name="nameLang" id="nameZh" value="zh"><span><b>eBird 中文名</b>：只在英文名导入后大量鸟种显示「未知」时再试。</span></label>
-        <span class="hint">鸟名和学名都会换成 eBird 2026 分类（例如 栗鹀 Emberiza rutila → Chestnut Bunting, Schoeniclus rutilus）。</span>
+        <label class="choice"><input type="radio" name="nameLang" id="nameZh" value="zh" checked><span><b>eBird 中文名</b>：导入时 eBird 网页显示<b>中文</b>就选这个。</span></label>
+        <label class="choice"><input type="radio" name="nameLang" id="nameEn" value="en"><span><b>eBird 英文名</b>：导入时 eBird 网页显示<b>英文</b>就选这个。</span></label>
+        <span class="hint">eBird 导入时按鸟名识别鸟种，鸟名要和 eBird 网页当时的语言一致，否则会显示为「未知鸟种」。已按你的浏览器语言自动选好（<span id="nameLangAuto">中文</span>）。学名会换成 eBird 2026 分类（例如 栗鹀 Emberiza rutila → Schoeniclus rutilus）。</span>
       </div>
     </div>
     <div class="apibox">
@@ -259,11 +259,11 @@ code{font-family:var(--mono);font-size:.92em;background:var(--sunken);padding:1p
       <div>
         <ol class="howto">
           <li><b>确认不会重复</b>：所选日期内的观鸟，eBird 里还没有（见第 3 步）。第一次建议先用「试导入：只要最早的一天」。</li>
-          <li><b>用电脑浏览器登录 eBird</b>：不要用 eBird 手机 App，App 里没有导入功能。不需要改 eBird 的语言设置。</li>
+          <li><b>用电脑浏览器登录 eBird</b>：不要用 eBird 手机 App，App 里没有导入功能。注意 eBird 网页显示的语言要和第 3 步「鸟名写法」一致（都用中文，或都用英文）。</li>
           <li><b>上传文件</b>：在 eBird 网站顶部点 <b>Submit（提交）</b>→<b>Import Data（导入数据）</b>，或直接打开<a href="https://ebird.org/import" target="_blank" rel="noopener">ebird.org/import</a>。格式选 <b>eBird Record Format (Extended)</b>，选择刚下载的 CSV，点 <b>Import File</b>。eBird 每个文件最多 1 MB，本工具已经自动分好；有几个文件就上传几次。</li>
           <li><b>等待处理</b>：文件格式正确时会显示正在处理；有问题时 eBird 会列出格式错误。</li>
           <li><b>修正地点（Fix Locations）</b>：到<a href="https://ebird.org/import/status/all.htm" target="_blank" rel="noopener">我的 eBird → 管理导入的数据（Manage Imported Data）</a>打开这次导入。每个地点可以选 eBird 热点、选以前用过的地点（Your Locations），或用 <b>Find it on a Map</b> 在地图上点选。改完点 <b>Apply Fixes</b> 保存。</li>
-          <li><b>修正鸟种（Fix Species）</b>：本工具已经把鸟名换成 eBird 2026 的名称，大部分会自动对上。剩下的（见上面「鸟种名称对照」里标为「需手动选择」的）点 <b>Choose Species</b> 选对应的鸟种，再点 <b>Apply Fixes</b>。原鸽请选 Rock Pigeon (Feral Pigeon)。</li>
+          <li><b>修正鸟种（Fix Species）</b>：本工具已经把鸟名换成 eBird 2026 的名称，大部分会自动对上。剩下的如果右边已经出现绿色的匹配，确认后直接点 <b>Apply Fixes（应用修正）</b>；没有匹配的（见上面「鸟种名称对照」里标为「需手动选择」的）点 <b>Choose Species</b> 选对应的鸟种，再点 <b>Apply Fixes</b>。原鸽请选 Rock Pigeon (Feral Pigeon)。</li>
           <li><b>检查结果</b>：到「我的 eBird」看看清单的日期、地点和数量对不对。</li>
           <li><b>导错了怎么办</b>：在「管理导入的数据」里点这次导入的 <b>Delete import</b>，会删除这个文件导入的全部记录；改好后重新导入即可。只有个别清单有问题时，直接在 eBird 里编辑那份清单。</li>
         </ol>
@@ -1019,6 +1019,12 @@ function loadSample(){
 (function init(){
   if (/MicroMessenger/i.test(navigator.userAgent)) $('#wechatNotice').hidden = false;
   const saved = store.get('ebirdApiKey'); if (saved) $('#apiKey').value = saved;
+  // eBird shows its pages in the browser's language unless changed, and its importer matches
+  // species by name in the language the page is shown in: start from the browser language.
+  const langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']).map(l => String(l).toLowerCase());
+  const zhFirst = langs.length && langs[0].startsWith('zh');
+  $(zhFirst ? '#nameZh' : '#nameEn').checked = true;
+  $('#nameLangAuto').textContent = zhFirst ? '中文' : '英文';
   const drop = $('#drop'), input = $('#fileInput');
   drop.addEventListener('click', () => input.click());
   drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); input.click(); } });
